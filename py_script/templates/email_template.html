@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #f3f4f6;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .wrapper {
+        width: 100%;
+        background-color: #f3f4f6;
+        padding: 40px 0;
+    }
+    .main-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    .header {
+        background-color: #3b82f6; /* Professional Blue */
+        padding: 24px;
+        text-align: center;
+        color: #ffffff;
+    }
+    .header h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: -0.5px;
+    }
+    .body-content {
+        padding: 32px;
+        color: #4b5563;
+        line-height: 1.6;
+    }
+    .footer {
+        background-color: #f9fafb;
+        border-top: 1px solid #e5e7eb;
+        padding: 20px;
+        text-align: center;
+        font-size: 13px;
+        color: #9ca3af;
+    }
+</style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="main-container">
+            <div class="header">
+                <h1>{{SUBJECT_LINE}}</h1>
+            </div>
+            <div class="body-content">
+                {{BODY_CONTENT}}
+            </div>
+            <div class="footer">
+                <p style="margin: 0;">This email was generated automatically by your Zeus AI Workflow Engine.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

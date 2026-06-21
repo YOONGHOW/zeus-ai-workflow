@@ -1,0 +1,253 @@
+<div class="mcp-chat-container gemini-style">
+
+
+  <section class="mcp-extractor-drawer" id="zeusExtractorDrawer" aria-hidden="true">
+    <div class="mcp-extractor-panel">
+      <div class="mcp-extractor-header">
+        <div>
+          <h2>Document Text Extractor</h2>
+          <p>Upload, extract, and review document fields.</p>
+        </div>
+        <div style="display: flex; align-items: center;">
+          <button class="mcp-extractor-close" id="extractorCollapseBtn" title="Close extractor">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="ocr-container">
+        <div class="ocr-sidebar">
+          <div id="extract-panel" class="sidebar-content active">
+            <div class="ocr-header">
+              <h2>Configuration</h2>
+              <p>Select fields to extract from the document.</p>
+            </div>
+
+            <div id="ocrStatusMessage" class="ocr-status-message">
+              Upload and process a document to begin extraction.
+            </div>
+
+            <div class="field-checklist" id="fieldChecklist">
+              <!-- Dynamically populated based on document type -->
+            </div>
+
+            <div id="textResults" class="text-results hidden">
+              <h3>Extracted Data</h3>
+              <div id="jsonOutput" class="json-box"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ocr-preview">
+          <div class="canvas-wrapper">
+            <div id="ocrContainer">
+              <div class="ocr-empty-state">No document loaded</div>
+            </div>
+          </div>
+
+          <div class="zoom-controls">
+            <button id="prevPageBtn" style="display: none;"><i class="fa-solid fa-chevron-left"></i></button>
+            <span id="pageIndicator" style="display: none; margin: 0 10px;">1 / 1</span>
+            <button id="nextPageBtn" style="display: none;"><i class="fa-solid fa-chevron-right"></i></button>
+
+            <div id="paginationSeparator"
+              style="display: none; width: 1px; height: 16px; background: rgba(255,255,255,0.2); margin: 0 8px;"></div>
+
+            <button id="zoomOut">-</button>
+            <span id="zoomLevel">100%</span>
+            <button id="zoomIn">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="mcp-chat-body" id="mcpChatBody">
+    <div class="gemini-welcome-container" id="welcomeContainer">
+      <div class="welcome-orb"></div>
+      <div class="welcome-orb welcome-orb-2"></div>
+      <div class="greeting"><span class="gradient-text">Hello,</span></div>
+      <div class="greeting-subtitle">How can I help you today?</div>
+    </div>
+  </div>
+
+  <div class="mcp-input-area-wrapper">
+    <div class="mcp-input-area">
+
+
+
+      <!-- Source Selection UI (Combined API + Database) -->
+      <div class="source-select-overlay" id="sourceSelectOverlay"></div>
+      <div class="source-select-popup" id="sourceSelectPopup">
+        <div class="source-select-header">
+          <div class="source-select-title">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>Select a Source</span>
+          </div>
+          <button class="source-select-close" id="sourceSelectClose" type="button">&times;</button>
+        </div>
+        <div class="source-select-body">
+          <div class="source-select-column">
+            <div class="source-column-header">
+              <i class="fa-solid fa-plug"></i>
+              <span>APIs</span>
+              <span class="source-column-count" id="sourceApiCount">0</span>
+            </div>
+            <div class="source-column-list" id="sourceApiList"></div>
+          </div>
+          <div class="source-select-divider"></div>
+          <div class="source-select-column">
+            <div class="source-column-header">
+              <i class="fa-solid fa-database"></i>
+              <span>Databases</span>
+              <span class="source-column-count" id="sourceDbCount">0</span>
+            </div>
+            <div class="source-column-list" id="sourceDbList"></div>
+          </div>
+        </div>
+        <div class="source-select-empty" id="sourceSelectEmpty" style="display:none;">
+          <div class="db-select-empty-icon"><i class="fa-solid fa-layer-group"></i></div>
+          <div class="db-select-empty-text">No sources configured</div>
+          <div class="db-select-empty-sub">Configure APIs or databases in settings to connect them.</div>
+        </div>
+      </div>
+
+      <div class="mcp-input-box">
+        <div id="mcpFilePreviewBar" style="display: none;"></div>
+
+        <button class="db-active-badge" id="sourceActiveBadge" style="display:none; margin-bottom:8px;"
+          title="Click to change source">
+          <div class="db-active-dot"></div>
+          <i class="fa-solid fa-plug" id="sourceActiveIcon"></i>
+          <span id="sourceActiveName">No source selected</span>
+          <span class="db-active-clear" id="sourceActiveClear" role="button" title="Clear selection"><i
+              class="fa-solid fa-xmark"></i></span>
+        </button>
+
+        <div id="workflowModeBadge"
+          style="display: none; align-items: center; gap: 8px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #fcd34d; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-family: Inter, sans-serif; font-weight: 500; margin-bottom: 8px; width: fit-content;">
+          <i class="fa-solid fa-project-diagram"></i>
+          <span>Create Workflow</span>
+          <i class="fa-solid fa-xmark" id="workflowModeClear" style="cursor: pointer; opacity: 0.7;"
+            title="Clear workflow mode"></i>
+        </div>
+        <textarea class="mcp-input" rows="1" placeholder="Enter a prompt here"></textarea>
+
+        <div class="mcp-input-actions">
+          <div class="mcp-action-group">
+            <input type="file" id="mcpFileInput" style="display: none;" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple>
+            <div class="mcp-plus-menu-container" style="position: relative; display: inline-block;">
+              <button class="mcp-icon-btn" id="mcpFileBtn" title="Add attachment or source" type="button">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+              <div class="mcp-plus-dropdown" id="mcpPlusDropdown"
+                style="display: none; position: absolute; bottom: 44px; left: 0; background: #1e1f20; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 1000; width: max-content; min-width: 160px; padding: 6px;">
+                <div class="mcp-plus-dropdown-item" id="plusUploadBtn"
+                  style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; cursor: pointer; color: #f1f5f9; font-size: 13px; transition: all 0.2s ease;">
+                  <i class="fa-solid fa-paperclip" style="color: #60a5fa; width: 16px;"></i>
+                  <span>Upload File</span>
+                </div>
+                <div class="mcp-plus-dropdown-item" id="plusWorkflowBtn"
+                  style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; cursor: pointer; color: #f1f5f9; font-size: 13px; transition: all 0.2s ease;">
+                  <i class="fa-solid fa-project-diagram" style="color: #f59e0b; width: 16px;"></i>
+                  <span>Create Workflow</span>
+                </div>
+                <div class="mcp-plus-dropdown-item" id="plusSourceBtn"
+                  style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; cursor: pointer; color: #f1f5f9; font-size: 13px; transition: all 0.2s ease;">
+                  <i class="fa-solid fa-layer-group" style="color: #c084fc; width: 16px;"></i>
+                  <span>Source</span>
+                </div>
+              </div>
+            </div>
+            <button id="cbConfigToggle" class="mcp-icon-btn" title="Configuration" style="display: none;">
+              <i class="fa-solid fa-sliders"></i>
+            </button>
+          </div>
+
+          <button class="mcp-send-btn" title="Send message">
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="mcp-bottom-footer">
+      Zeus AI may display inaccurate info, so double-check its responses.
+    </div>
+  </div>
+</div>
+
+<div class="cb-config-board" id="cbConfigBoard">
+  <div class="cb-config-content">
+    <div class="cb-config-header">
+      <h3>Zeus Configuration</h3>
+      <button class="cb-close-modal" id="cbCloseConfig">&times;</button>
+    </div>
+
+    <div class="cb-config-body">
+
+      <div class="cb-config-group">
+        <label>Custom System Instructions</label>
+        <p class="cb-instruction">Customise how Zeus responds to you.</p>
+        <textarea id="cfgRole" rows="2" placeholder="e.g. Always answer in bullet points..."></textarea>
+      </div>
+
+      <div class="cb-config-group" id="cbKbGroup" style="display: none;">
+        <label>Knowledge Base</label>
+        <p class="cb-instruction">Upload documents/policies/exams to query in this project session.</p>
+        <div class="cb-upload-wrapper">
+          <input type="file" id="cbFileUpload" style="display: none;" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple>
+          <button type="button" class="cb-secondary-btn" style="cursor: pointer;"
+            onclick="document.getElementById('cbFileUpload').click()">
+            <i class="fa-solid fa-plus"></i> Select Files
+          </button>
+          <span id="fileCount">No files selected</span>
+        </div>
+        <div id="fileList" class="cb-file-list"></div>
+      </div>
+
+
+
+      <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <div class="cb-config-group" style="flex: 1;">
+          <label>Creativity (Temperature)</label>
+          <input type="range" id="cfgTemp" min="0" max="1" step="0.1" value="0.7">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: #64748b; margin-top: 5px;">
+            <span>Accurate</span>
+            <span>Balanced</span>
+            <span>Creative</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="cb-send-btn"
+        style="width:100%; margin-top:20px; border-radius: 12px; justify-content: center; padding: 12px; height: auto;"
+        id="cbSaveConfig">
+        Save & Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Document History Modal Overlay -->
+<div id="ocrHistoryModal" class="zeus-modal-overlay">
+  <div class="zeus-modal-content">
+    <div class="zeus-modal-header">
+      <h3>Document History</h3>
+      <button class="zeus-modal-close" id="closeOcrHistoryBtn">&times;</button>
+    </div>
+    <div class="zeus-modal-body">
+      <table class="zeus-history-table">
+        <thead>
+          <tr>
+            <th>Filename</th>
+            <th>Uploaded Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="ocrHistoryTableBody">
+          <!-- Populated dynamically -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

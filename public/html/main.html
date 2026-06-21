@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zeus AI Agent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/chatbot.css" />
+    <link rel="stylesheet" href="/css/zeus.css" />
+    <link rel="stylesheet" href="/css/ocrSys.css" />
+    <link rel="stylesheet" href="/css/darkmode.css" />
+    <link rel="stylesheet" href="/css/notification.css" />
+    <link rel="stylesheet" href="/css/auth.css" />
+    <link rel="stylesheet" href="/css/taskAllocation.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        const pdfjsLib = window['pdfjs-dist/build/pdf'];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <header class="gemini-header">
+        <div class="header-left">
+            <button id="sidebarToggle" class="icon-btn tooltip-container" title="Collapse menu">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <span class="logo">Zeus AI Agent</span>
+        </div>
+        <div class="header-right">
+            <button class="icon-btn tooltip-container" id="dbConfigToggle" title="Connections" style="display:flex;">
+                <i class="fa-solid fa-link"></i>
+            </button>
+            <button class="icon-btn tooltip-container" id="themeToggle" title="Toggle Dark Mode">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+            <div class="user-profile-icon tooltip-container" title="User Profile" id="userProfileIcon">User</div>
+            <button class="icon-btn tooltip-container" id="logoutBtn" title="Logout">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Unified Connections Modal (centered) -->
+    <div class="db-modal-overlay" id="dbConfigOverlay"></div>
+    <div class="db-modal" id="dbConfigPanel">
+        <div class="db-modal-sidebar">
+            <div class="db-modal-brand">
+                <div class="db-modal-brand-icon"><i class="fa-solid fa-link"></i></div>
+                <span>Connections</span>
+            </div>
+            <button class="db-modal-tab active" data-tab="database" id="tabDatabase">
+                <div class="db-modal-tab-icon-wrap"><i class="fa-solid fa-database"></i></div>
+                <div>
+                    <div class="db-modal-tab-title">Database</div>
+                    <div class="db-modal-tab-sub">Manage DB access</div>
+                </div>
+            </button>
+            <button class="db-modal-tab" data-tab="api" id="tabApi">
+                <div class="db-modal-tab-icon-wrap"><i class="fa-solid fa-plug"></i></div>
+                <div>
+                    <div class="db-modal-tab-title">REST API</div>
+                    <div class="db-modal-tab-sub">Manage API access</div>
+                </div>
+            </button>
+        </div>
+        <div class="db-modal-body">
+            <button class="db-modal-close" id="dbConfigClose"><i class="fa-solid fa-xmark"></i></button>
+
+            <!-- DATABASE TAB -->
+            <div class="db-modal-content active" id="contentDatabase">
+                <div class="db-modal-content-header">
+                    <div>
+                        <h3>Database</h3>
+                        <p>Create and manage database connections from here.</p>
+                    </div>
+                    <button class="db-create-btn" id="dbCreateNew"><i class="fa-solid fa-plus"></i> Create New</button>
+                </div>
+                <div class="db-conn-list" id="dbConnList">
+                    <!-- Populated by JS -->
+                </div>
+                <!-- Add / Edit Form -->
+                <div class="db-add-form" id="dbAddForm">
+                    <div class="db-form-row">
+                        <div class="db-form-group">
+                            <label>Connection Type</label>
+                            <div class="cb-custom-select" id="dbConnTypeSelect">
+                                <div class="cb-custom-select-trigger" id="dbConnTypeTrigger">
+                                    <span class="cb-custom-select-label" id="dbConnTypeLabel">-- Select Type --</span>
+                                    <i class="fa-solid fa-chevron-down cb-custom-select-arrow"></i>
+                                </div>
+                                <div class="cb-custom-select-options" id="dbConnTypeOptions">
+                                    <div class="cb-custom-select-option selected" data-value="">
+                                        <span>-- Select Type --</span>
+                                        <i class="fa-solid fa-check cb-option-check"></i>
+                                    </div>
+                                    <div class="cb-custom-select-option" data-value="mysql">
+                                        <span>MySQL</span>
+                                        <i class="fa-solid fa-check cb-option-check"></i>
+                                    </div>
+                                    <div class="cb-custom-select-option" data-value="postgresql">
+                                        <span>PostgreSQL</span>
+                                        <i class="fa-solid fa-check cb-option-check"></i>
+                                    </div>
+                                    <div class="cb-custom-select-option" data-value="mssql">
+                                        <span>SQL Server</span>
+                                        <i class="fa-solid fa-check cb-option-check"></i>
+                                    </div>
+                                    <div class="cb-custom-select-option" data-value="sqlite">
+                                        <span>SQLite</span>
+                                        <i class="fa-solid fa-check cb-option-check"></i>
+                                    </div>
+                                    <div class="cb-custom-select-option" data-value="mongodb">
+                                        <span>MongoDB</span>
+                                        <i class="fa-solid fa-check cb-option-check"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="dbConnType" value="">
+                        </div>
+                        <div class="db-form-group">
+                            <label>Database Name</label>
+                            <input type="text" class="db-config-input" id="dbName" placeholder="my_database" />
+                        </div>
+                    </div>
+                    <div class="db-form-group">
+                        <label>Host</label>
+                        <input type="text" class="db-config-input" id="dbHost" placeholder="localhost" />
+                    </div>
+                    <div class="db-form-row">
+                        <div class="db-form-group">
+                            <label>Port</label>
+                            <input type="text" class="db-config-input" id="dbPort" placeholder="3306" />
+                        </div>
+                        <div class="db-form-group">
+                            <label>Username</label>
+                            <input type="text" class="db-config-input" id="dbUser" placeholder="root"
+                                autocomplete="off" />
+                        </div>
+                    </div>
+                    <div class="db-form-group">
+                        <label>Password</label>
+                        <input type="password" class="db-config-input" id="dbPass" placeholder="••••••••"
+                            autocomplete="new-password" />
+                    </div>
+                    <div class="db-form-group">
+                        <div class="db-form-label-row">
+                            <label>Description</label>
+                            <button class="db-autogen-btn" id="dbAutoGenBtn" type="button">
+                                <i class="fa-solid fa-wand-magic-sparkles" id="dbAutoGenIcon"></i>
+                                <span id="dbAutoGenText">Auto Generate</span>
+                            </button>
+                        </div>
+                        <textarea class="db-config-input db-desc-textarea" id="dbDesc" rows="6"
+                            placeholder="e.g. Primary Sales Database — describe what this database is used for, its main tables, and how the AI should query it."></textarea>
+                    </div>
+                    <div class="db-form-actions">
+                        <button class="db-btn-ghost" id="dbCancelForm">Cancel</button>
+                        <button class="db-btn-primary" id="dbTestBtn"><i class="fa-solid fa-plug"></i> Test</button>
+                        <button class="db-btn-primary" id="dbSaveBtn"><i class="fa-solid fa-floppy-disk"></i>
+                            Save</button>
+                    </div>
+                    <div class="db-config-status" id="dbConfigStatus" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- API TAB -->
+            <div class="db-modal-content" id="contentApi">
+                <div class="db-modal-content-header">
+                    <div>
+                        <h3>REST API</h3>
+                        <p>Create and manage API connections from here.</p>
+                    </div>
+                    <button class="db-create-btn" id="apiCreateNew"><i class="fa-solid fa-plus"></i> Create New</button>
+                </div>
+                <div class="db-conn-list" id="apiConnList">
+                    <!-- Populated by JS -->
+                </div>
+                <!-- Add / Edit Form -->
+                <div class="db-add-form" id="apiAddForm">
+                    <div class="db-form-group">
+                        <label>API Name</label>
+                        <input type="text" class="db-config-input" id="apiName" placeholder="My API" />
+                    </div>
+                    <div class="db-form-row">
+                        <div class="db-form-group" style="flex:0 0 100px;">
+                            <label>Method</label>
+                            <select id="apiMethod" class="db-config-input" style="padding: 8px;">
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="DELETE">DELETE</option>
+                            </select>
+                        </div>
+                        <div class="db-form-group">
+                            <label>Endpoint URL</label>
+                            <input type="text" class="db-config-input" id="apiUrl"
+                                placeholder="https://api.example.com/data" />
+                        </div>
+                    </div>
+                    <div class="db-form-group">
+                        <label>API Key / Token (Optional)</label>
+                        <input type="text" class="db-config-input" id="apiKey" placeholder="Bearer sk-..." />
+                    </div>
+                    <div class="db-form-group">
+                        <label>Parameters (JSON)</label>
+                        <textarea class="db-config-input db-desc-textarea" id="apiParams" rows="2"
+                            placeholder='{"key": "value"}'></textarea>
+                    </div>
+                    <div class="db-form-group">
+                        <label>Description</label>
+                        <input type="text" class="db-config-input" id="apiDesc"
+                            placeholder="e.g. Fetches user data..." />
+                    </div>
+                    <div class="db-form-actions">
+                        <button class="db-btn-ghost" id="apiCancelForm">Cancel</button>
+                        <button class="db-btn-primary" id="apiSaveBtn"><i class="fa-solid fa-floppy-disk"></i>
+                            Save</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+
+    <div class="main-container">
+        <aside class="sidebar" id="sidebar">
+
+            <!-- New Chat / Search / Projects Section -->
+            <div class="sb-menu-items" style="padding: 8px 0 4px; display: flex; flex-direction: column; gap: 2px;">
+                <div class="sb-item" id="sbTaskAllocationBtn">
+                    <i class="fa-solid fa-diagram-project sb-icon"></i>
+                    <span class="sb-text">AI Workflow</span>
+                </div>
+                <div class="sb-item" id="sbDocumentBtn">
+                    <i class="fa-solid fa-file sb-icon"></i>
+                    <span class="sb-text">Document</span>
+                </div>
+
+                <div class="sb-item" id="sbNewChatBtn">
+                    <i class="fa-regular fa-pen-to-square sb-icon"></i>
+                    <span class="sb-text">New chat</span>
+                </div>
+
+                <div class="sb-item" id="sbNewProjectBtn">
+                    <i class="fa-regular fa-folder sb-icon"></i>
+                    <span class="sb-text">Project</span>
+                </div>
+            </div>
+
+            <!-- Scrollable area -->
+            <div class="sb-scroll">
+
+
+
+                <!-- Projects Section -->
+                <div class="sb-section">
+                    <div class="sb-section-header" id="projectsHeader">
+                        <span class="sb-section-label sb-text">Projects</span>
+                        <div class="sb-header-actions">
+                            <i class="fa-solid fa-chevron-down sb-arrow" id="projectsArrow"></i>
+                        </div>
+                    </div>
+                    <div id="zeusProjectHistoryList" class="sb-sub-list-plain open"></div>
+                </div>
+
+                <!-- Recent Chats Section -->
+                <div class="sb-section">
+                    <div class="sb-section-header" id="recentChatsHeader">
+                        <span class="sb-section-label sb-text">Recent</span>
+                        <div class="sb-header-actions">
+                            <i class="fa-solid fa-chevron-down sb-arrow" id="recentChatArrow"></i>
+                        </div>
+                    </div>
+                    <!-- Hidden anchor needed by mcpLogic -->
+                    <div id="menu-mcp-agent" style="display:none;"></div>
+                    <div id="zeusSessionHistoryList" class="sb-sub-list-plain open"></div>
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div class="sb-footer">
+                <div class="sb-item" id="sbSettingsBtn" style="cursor: pointer;">
+                    <i class="fa-solid fa-gear sb-icon"></i>
+                    <span class="sb-text">Settings</span>
+                </div>
+            </div>
+        </aside>
+
+
+        <div class="app">
+            <div id="main-content-area" class="content-wrapper"></div>
+        </div>
+
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+    <script>
+        // --- GLOBAL VARIABLES ---
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        const contentArea = document.getElementById('main-content-area');
+
+        // --- AUTH LOGIC ---
+        const logoutBtn = document.getElementById('logoutBtn');
+        const userProfileIcon = document.getElementById('userProfileIcon');
+
+        function checkAuth() {
+            const user = JSON.parse(localStorage.getItem('zeusUser'));
+            if (!user) {
+                window.location.href = '/index.html';
+            } else {
+                const username = user.email.split('@')[0];
+                if (userProfileIcon) {
+                    userProfileIcon.textContent = username;
+                    userProfileIcon.title = user.email;
+                }
+
+                // Adjust UI based on role
+                if (user.role === 'user') {
+                    const dbCreateNew = document.getElementById('dbCreateNew');
+                    const apiCreateNew = document.getElementById('apiCreateNew');
+                    if (dbCreateNew) dbCreateNew.style.display = 'none';
+                    if (apiCreateNew) apiCreateNew.style.display = 'none';
+                }
+            }
+        }
+
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                localStorage.removeItem('zeusUser');
+                checkAuth();
+            });
+        }
+
+        checkAuth();
+
+        // --- SIDEBAR NAVIGATION ---
+        const dashboardButton = document.getElementById('menu-dashboard');
+        const ocrButton = document.getElementById('menu-ocr');
+
+        const mcpAgentButton = document.getElementById('menu-mcp-agent');
+
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('collapsed');
+            });
+        }
+
+        // --- DARK MODE LOGIC ---
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            // Check local storage for theme preference
+            if (localStorage.getItem('theme') === 'dark') {
+                document.body.classList.add('dark-mode');
+                themeToggle.innerHTML = '<i class="fa-solid fa-sun"></i>';
+            }
+
+            themeToggle.addEventListener('click', () => {
+                document.body.classList.toggle('dark-mode');
+                if (document.body.classList.contains('dark-mode')) {
+                    localStorage.setItem('theme', 'dark');
+                    themeToggle.innerHTML = '<i class="fa-solid fa-sun"></i>';
+                } else {
+                    localStorage.setItem('theme', 'light');
+                    themeToggle.innerHTML = '<i class="fa-solid fa-moon"></i>';
+                }
+            });
+        }
+
+        function setActiveMenu(selectedId) {
+            document.querySelectorAll('.history-item, .sb-item').forEach(item => item.classList.remove('active'));
+            const activeItem = document.getElementById(selectedId) || document.getElementById('sbTaskAllocationBtn'); // Just a fallback if needed for styling
+            if (activeItem && selectedId !== 'menu-task-allocation' && selectedId !== 'menu-documents') {
+                activeItem.classList.add('active');
+            } else if (selectedId === 'menu-task-allocation') {
+                const taBtn = document.getElementById('sbTaskAllocationBtn');
+                if (taBtn) taBtn.classList.add('active');
+            } else if (selectedId === 'menu-documents') {
+                const docBtn = document.getElementById('sbDocumentBtn');
+                if (docBtn) docBtn.classList.add('active');
+            }
+            localStorage.setItem('activeMenuId', selectedId);
+        }
+
+        async function loadDocuments() {
+            try {
+                const response = await fetch('/html/document.html?v=' + Date.now());
+                if (!response.ok) throw new Error("Could not load Documents");
+                contentArea.innerHTML = await response.text();
+
+                if (typeof window.initializeDocumentsPage === 'function') {
+                    setTimeout(window.initializeDocumentsPage, 50);
+                }
+            } catch (err) {
+                contentArea.innerHTML = `<div style="color:red; padding:20px;">Error: ${err.message}</div>`;
+            }
+        }
+        window.loadDocuments = loadDocuments;
+
+        async function loadOCR() {
+            try {
+                const response = await fetch('/html/ocrSys.html?v=' + Date.now());
+                if (!response.ok) throw new Error("Could not load OCR");
+                contentArea.innerHTML = await response.text();
+
+                if (typeof window.initializeOCRPage === 'function') {
+                    setTimeout(window.initializeOCRPage, 50);
+                }
+            } catch (err) {
+                contentArea.innerHTML = `<div style="color:red; padding:20px;">Error: ${err.message}</div>`;
+            }
+        }
+
+        // --- RECENT CHATS SIDEBAR LOGIC ---
+        const recentChatsHeader = document.getElementById('recentChatsHeader');
+        const recentHistoryList = document.getElementById('zeusSessionHistoryList');
+        const recentChatArrow = document.getElementById('recentChatArrow');
+
+        if (recentChatsHeader) {
+            recentChatsHeader.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = recentHistoryList.classList.contains('open');
+                if (isOpen) {
+                    recentHistoryList.classList.remove('open');
+                    recentChatsHeader.classList.remove('open');
+                    if (recentChatArrow) recentChatArrow.style.transform = '';
+                } else {
+                    recentHistoryList.classList.add('open');
+                    recentChatsHeader.classList.add('open');
+                    if (recentChatArrow) recentChatArrow.style.transform = 'rotate(180deg)';
+                    if (sidebar.classList.contains('collapsed')) sidebar.classList.remove('collapsed');
+                }
+            });
+        }
+
+        // --- PROJECTS SIDEBAR LOGIC ---
+        const projectsHeader = document.getElementById('projectsHeader');
+        const projectsHistoryList = document.getElementById('zeusProjectHistoryList');
+        const projectsArrow = document.getElementById('projectsArrow');
+
+        if (projectsHeader) {
+            projectsHeader.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = projectsHistoryList.classList.contains('open');
+                if (isOpen) {
+                    projectsHistoryList.classList.remove('open');
+                    projectsHeader.classList.remove('open');
+                    if (projectsArrow) projectsArrow.style.transform = '';
+                } else {
+                    projectsHistoryList.classList.add('open');
+                    projectsHeader.classList.add('open');
+                    if (projectsArrow) projectsArrow.style.transform = 'rotate(180deg)';
+                    if (sidebar.classList.contains('collapsed')) sidebar.classList.remove('collapsed');
+                }
+            });
+        }
+
+        // Sidebar Menu Items navigation and session creation
+        const sbNewChatBtn = document.getElementById('sbNewChatBtn');
+        if (sbNewChatBtn) {
+            sbNewChatBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (localStorage.getItem('activeMenuId') !== 'menu-mcp-agent') {
+                    localStorage.setItem('pendingZeusSessionType', 'chat');
+                    navigate('menu-mcp-agent');
+                } else {
+                    if (typeof window.startNewZeusChat === 'function') {
+                        window.startNewZeusChat('chat');
+                    }
+                }
+            });
+        }
+
+        const sbNewProjectBtn = document.getElementById('sbNewProjectBtn');
+        if (sbNewProjectBtn) {
+            sbNewProjectBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (localStorage.getItem('activeMenuId') !== 'menu-mcp-agent') {
+                    localStorage.setItem('pendingZeusSessionType', 'project');
+                    navigate('menu-mcp-agent');
+                } else {
+                    if (typeof window.startNewZeusChat === 'function') {
+                        window.startNewZeusChat('project');
+                    }
+                }
+            });
+        }
+
+
+        const sbTaskAllocationBtn = document.getElementById('sbTaskAllocationBtn');
+        if (sbTaskAllocationBtn) {
+            sbTaskAllocationBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                navigate('menu-task-allocation');
+            });
+        }
+
+        const sbDocumentBtn = document.getElementById('sbDocumentBtn');
+        if (sbDocumentBtn) {
+            sbDocumentBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                navigate('menu-documents');
+            });
+        }
+
+        // Click Projects pill to trigger collapse/expand projects section
+        const projectsPill = document.getElementById('sbProjectsPill');
+        if (projectsPill && projectsHeader) {
+            projectsPill.addEventListener('click', (e) => {
+                // If they clicked the plus button, don't toggle collapse
+                if (e.target.closest('#sbNewProjectBtn')) return;
+                projectsHeader.click();
+            });
+        }
+
+
+        function navigate(menuId) {
+            setActiveMenu(menuId);
+            if (menuId === 'menu-dashboard') loadDashboard();
+            else if (menuId === 'menu-ocr') loadOCR();
+            else if (menuId === 'menu-mcp-agent') loadMCPAgent();
+            else if (menuId === 'menu-task-allocation') loadTaskAllocation();
+            else if (menuId === 'menu-documents') loadDocuments();
+        }
+        window.navigate = navigate;
+
+        if (ocrButton) ocrButton.addEventListener('click', () => navigate('menu-ocr'));
+
+        if (dashboardButton) dashboardButton.addEventListener('click', () => navigate('menu-dashboard'));
+        if (mcpAgentButton) mcpAgentButton.addEventListener('click', () => navigate('menu-mcp-agent'));
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedMenuId = localStorage.getItem('activeMenuId') || 'menu-mcp-agent';
+            navigate(savedMenuId);
+            // Auto collapse sidebar on laptop screens
+            if (window.innerWidth <= 1600 && sidebar) {
+                sidebar.classList.add('collapsed');
+            }
+            // Always load sidebar sessions on page load, independent of active view
+            loadSidebarSessions();
+        });
+
+        // --- STANDALONE SIDEBAR SESSION LOADER ---
+        async function loadSidebarSessions() {
+            const user = JSON.parse(localStorage.getItem('zeusUser'));
+            if (!user) return; // Don't load if not authenticated
+
+            const chatList = document.getElementById('zeusSessionHistoryList');
+            const projectList = document.getElementById('zeusProjectHistoryList');
+            if (!chatList && !projectList) return;
+            try {
+                const res = await fetch(`http://127.0.0.1:8000/zeus/sessions?userid=${user.userid}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (chatList) chatList.innerHTML = '';
+                if (projectList) projectList.innerHTML = '';
+                if (!data.sessions || data.sessions.length === 0) return;
+                data.sessions.forEach(s => {
+                    const el = document.createElement('div');
+                    const isActive = s.id === window.currentSessionId;
+                    el.className = 'sb-session-item' + (isActive ? ' active' : '');
+
+                    const icon = document.createElement('i');
+                    icon.className = s.type === 'project' ? 'fa-regular fa-folder sb-session-icon' : 'fa-regular fa-message sb-session-icon';
+
+                    const title = document.createElement('span');
+                    title.className = 'sb-session-title';
+                    title.textContent = s.title;
+
+                    const renameBtn = document.createElement('button');
+                    renameBtn.className = 'sb-session-rename';
+                    renameBtn.innerHTML = '<i class="fa-regular fa-pen-to-square"></i>';
+                    renameBtn.title = 'Rename session';
+                    renameBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        const newTitle = await window.showZeusPrompt(`Rename this ${s.type || 'chat'} session:`, s.title || 'Untitled');
+                        if (newTitle && newTitle !== s.title) {
+                            try {
+                                const response = await fetch(`http://127.0.0.1:8000/zeus/sessions/${s.id}`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ title: newTitle })
+                                });
+                                if (response.ok) {
+                                    loadSidebarSessions();
+                                } else {
+                                    const errData = await response.json();
+                                    window.showZeusNotification(`Failed to rename session: ${errData.detail || 'Unknown error'}`, 'error');
+                                }
+                            } catch (err) {
+                                console.error(err);
+                                window.showZeusNotification('Error connecting to server to rename session.', 'error');
+                            }
+                        }
+                    };
+
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'sb-session-del';
+                    delBtn.innerHTML = '<i class="fa-regular fa-trash-can"></i>';
+                    delBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        if (!await window.showZeusConfirm(`Are you sure you want to delete the ${s.type || 'chat'} session "${s.title || 'Untitled'}"?`)) return;
+                        await fetch(`http://127.0.0.1:8000/zeus/sessions/${s.id}`, { method: 'DELETE' });
+                        loadSidebarSessions();
+                    };
+
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'sb-session-actions';
+                    actionsDiv.appendChild(renameBtn);
+                    actionsDiv.appendChild(delBtn);
+
+                    el.appendChild(icon);
+                    el.appendChild(title);
+                    el.appendChild(actionsDiv);
+
+                    el.onclick = (e) => {
+                        e.stopPropagation();
+                        if (localStorage.getItem('activeMenuId') !== 'menu-mcp-agent') {
+                            localStorage.setItem('pendingZeusSessionId', s.id);
+                            localStorage.setItem('pendingZeusSessionType', s.type);
+                            navigate('menu-mcp-agent');
+                        } else {
+                            if (typeof window.loadHistory === 'function') {
+                                window.loadHistory(s.id, s.type);
+                            }
+                        }
+                    };
+
+                    // Skip displaying database sessions
+                    if (s.type === 'database') {
+                        return;
+                    }
+
+                    if (s.type === 'project' && projectList) {
+                        projectList.appendChild(el);
+                    } else if (chatList) {
+                        chatList.appendChild(el);
+                    }
+                });
+            } catch (err) {
+                console.warn('Could not load sessions:', err);
+            }
+        }
+        window.loadSidebarSessions = loadSidebarSessions;
+
+        // --- DB CONFIG MODAL LOGIC ---
+        const dbConfigToggle = document.getElementById('dbConfigToggle');
+        const dbConfigPanel = document.getElementById('dbConfigPanel');
+        const dbConfigOverlay = document.getElementById('dbConfigOverlay');
+        const dbConfigClose = document.getElementById('dbConfigClose');
+        const dbTestBtn = document.getElementById('dbTestBtn');
+        const dbSaveBtn = document.getElementById('dbSaveBtn');
+        const dbConfigStatus = document.getElementById('dbConfigStatus');
+        const dbCreateNew = document.getElementById('dbCreateNew');
+        const dbCancelForm = document.getElementById('dbCancelForm');
+        const dbAddForm = document.getElementById('dbAddForm');
+        const dbConnList = document.getElementById('dbConnList');
+        const apiCreateNew = document.getElementById('apiCreateNew');
+        const apiCancelForm = document.getElementById('apiCancelForm');
+        const apiAddForm = document.getElementById('apiAddForm');
+        const apiConnList = document.getElementById('apiConnList');
+        const apiSaveBtn = document.getElementById('apiSaveBtn');
+
+        // Tab switching
+        document.querySelectorAll('.db-modal-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.db-modal-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.db-modal-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('content' + tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)).classList.add('active');
+            });
+        });
+
+        function openDbConfig() {
+            dbConfigPanel.classList.add('active');
+            dbConfigOverlay.classList.add('active');
+            renderDbConnList();
+            if (typeof window.renderApiConnList === 'function') {
+                window.renderApiConnList();
+            }
+        }
+        function closeDbConfig() {
+            dbConfigPanel.classList.remove('active');
+            dbConfigOverlay.classList.remove('active');
+            document.getElementById('contentDatabase').classList.remove('show-form');
+            document.getElementById('contentApi').classList.remove('show-form');
+        }
+        if (dbConfigToggle) dbConfigToggle.addEventListener('click', openDbConfig);
+        if (dbConfigClose) dbConfigClose.addEventListener('click', closeDbConfig);
+        if (dbConfigOverlay) dbConfigOverlay.addEventListener('click', closeDbConfig);
+
+        // --- DB connections list ---
+        let dbEditingId = null;
+
+        function openDbForm(c) {
+            document.getElementById('contentDatabase').classList.add('show-form');
+            if (c) {
+                dbEditingId = c.id;
+                document.getElementById('dbName').value = c.database_name || '';
+                document.getElementById('dbHost').value = c.host || '';
+                document.getElementById('dbPort').value = c.port || '';
+                document.getElementById('dbUser').value = c.user || '';
+                document.getElementById('dbPass').value = c.password || '';
+                document.getElementById('dbDesc').value = c.description || '';
+                document.getElementById('dbConnType').value = c.type || '';
+            } else {
+                dbEditingId = null;
+                document.getElementById('dbName').value = '';
+                document.getElementById('dbHost').value = '';
+                document.getElementById('dbPort').value = '';
+                document.getElementById('dbUser').value = '';
+                document.getElementById('dbPass').value = '';
+                document.getElementById('dbDesc').value = '';
+                document.getElementById('dbConnType').value = '';
+            }
+        }
+
+        async function renderDbConnList() {
+            if (!dbConnList) return;
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/db_connections');
+                const conns = await res.json();
+                dbConnList.innerHTML = '';
+                if (conns.length === 0) {
+                    dbConnList.innerHTML = `
+                        <div class="db-conn-empty">
+                            <i class="fa-solid fa-database"></i>
+                            <span>No database connections yet. Click <strong>Create New</strong> to add one.</span>
+                        </div>`;
+                    return;
+                }
+                const typeIcons = { mysql: 'fa-solid fa-database', postgresql: 'fa-solid fa-database', mssql: 'fa-brands fa-microsoft', sqlite: 'fa-solid fa-file', mongodb: 'fa-solid fa-leaf' };
+                const typeLabels = { mysql: 'MySQL', postgresql: 'PostgreSQL', mssql: 'SQL Server', sqlite: 'SQLite', mongodb: 'MongoDB' };
+                const user = JSON.parse(localStorage.getItem('zeusUser'));
+                const isUser = user && user.role === 'user';
+                conns.forEach((c) => {
+                    const item = document.createElement('div');
+                    item.className = 'db-conn-item';
+                    const icon = typeIcons[c.type] || 'fa-solid fa-database';
+                    const typeLabel = typeLabels[c.type] || c.type || 'Database';
+                    const metaText = isUser ? typeLabel : `${typeLabel}${c.host ? ' &middot; ' + c.host : ''}${c.port ? ':' + c.port : ''}`;
+                    item.innerHTML = `
+                        <div class="db-conn-item-icon"><i class="${icon}"></i></div>
+                        <div class="db-conn-item-info">
+                            <div class="db-conn-item-name">${c.name || 'Unnamed Connection'}</div>
+                            <div class="db-conn-item-meta">${metaText}</div>
+                        </div>
+                        <span class="db-conn-status configured">Active</span>
+                        <div class="db-conn-actions user-role-hide">
+                            <button class="db-conn-edit" title="Edit connection"><i class="fa-solid fa-pen"></i></button>
+                            <button class="db-conn-del" data-id="${c.id}" title="Delete connection"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    `;
+                    if (isUser) {
+                        item.querySelector('.db-conn-actions').style.display = 'none';
+                    }
+                    item.querySelector('.db-conn-edit').onclick = (e) => {
+                        e.stopPropagation();
+                        openDbForm(c);
+                    };
+                    item.querySelector('.db-conn-del').onclick = async (e) => {
+                        e.stopPropagation();
+                        if (!await window.showZeusConfirm(`Are you sure you want to delete database connection "${c.name}"?`)) return;
+                        await fetch(`http://127.0.0.1:8000/api/db_connections/${c.id}`, { method: 'DELETE' });
+                        renderDbConnList();
+                    };
+                    dbConnList.appendChild(item);
+                });
+            } catch (err) {
+                console.error(err);
+                dbConnList.innerHTML = '<div class="db-conn-empty"><i class="fa-solid fa-triangle-exclamation"></i><span>Could not load connections. Is the server running?</span></div>';
+            }
+        }
+
+        if (dbCreateNew) dbCreateNew.addEventListener('click', () => { openDbForm(); });
+        if (dbCancelForm) dbCancelForm.addEventListener('click', () => { document.getElementById('contentDatabase').classList.remove('show-form'); dbEditingId = null; });
+
+        if (dbTestBtn) {
+            dbTestBtn.addEventListener('click', async () => {
+                dbConfigStatus.style.display = 'flex';
+                dbConfigStatus.className = 'db-config-status testing';
+                dbConfigStatus.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testing connection...';
+
+                const payload = {
+                    type: document.getElementById('dbConnType').value,
+                    host: document.getElementById('dbHost').value,
+                    port: document.getElementById('dbPort').value,
+                    name: document.getElementById('dbName').value,
+                    database_name: document.getElementById('dbName').value,
+                    user: document.getElementById('dbUser').value,
+                    password: document.getElementById('dbPass').value,
+                };
+                try {
+                    const res = await fetch('http://127.0.0.1:8000/api/db_connections/test', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (res.ok) {
+                        dbConfigStatus.className = 'db-config-status success';
+                        dbConfigStatus.innerHTML = '<i class="fa-solid fa-circle-check"></i> Connection successful!';
+                    } else {
+                        const err = await res.json();
+                        dbConfigStatus.className = 'db-config-status error';
+                        dbConfigStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${err.detail || 'Connection failed'}`;
+                    }
+                } catch (e) {
+                    dbConfigStatus.className = 'db-config-status error';
+                    dbConfigStatus.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Error testing connection.';
+                }
+            });
+        }
+        if (dbSaveBtn) {
+            dbSaveBtn.addEventListener('click', async () => {
+                const payload = {
+                    type: document.getElementById('dbConnType').value,
+                    host: document.getElementById('dbHost').value,
+                    port: document.getElementById('dbPort').value,
+                    name: document.getElementById('dbName').value,
+                    database_name: document.getElementById('dbName').value,
+                    user: document.getElementById('dbUser').value,
+                    password: document.getElementById('dbPass').value,
+                    description: document.getElementById('dbDesc').value,
+                };
+                const url = dbEditingId
+                    ? `http://127.0.0.1:8000/api/db_connections/${dbEditingId}`
+                    : 'http://127.0.0.1:8000/api/db_connections';
+                const method = dbEditingId ? 'PUT' : 'POST';
+                try {
+                    const res = await fetch(url, {
+                        method: method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (res.ok) {
+                        document.getElementById('contentDatabase').classList.remove('show-form');
+                        dbEditingId = null;
+                        renderDbConnList();
+                        window.showZeusNotification('Database connection saved successfully.', 'success');
+                    } else {
+                        const err = await res.json();
+                        window.showZeusNotification(`Failed to save database connection: ${err.detail || 'Unknown error'}`, 'error');
+                    }
+                } catch (e) {
+                    window.showZeusNotification('Failed to save database connection. Is the server running?', 'error');
+                }
+            });
+        }
+
+        // --- AUTO GENERATE DESCRIPTION ---
+        const dbAutoGenBtn = document.getElementById('dbAutoGenBtn');
+        const dbAutoGenIcon = document.getElementById('dbAutoGenIcon');
+        const dbAutoGenText = document.getElementById('dbAutoGenText');
+        if (dbAutoGenBtn) {
+            dbAutoGenBtn.addEventListener('click', async () => {
+                const dbType = document.getElementById('dbConnType').value;
+                const dbHost = document.getElementById('dbHost').value;
+                const dbPort = document.getElementById('dbPort').value;
+                const dbName = document.getElementById('dbName').value;
+                const dbUser = document.getElementById('dbUser').value;
+                const dbPass = document.getElementById('dbPass').value;
+
+                if (!dbHost || !dbName) {
+                    dbConfigStatus.style.display = 'flex';
+                    dbConfigStatus.className = 'db-config-status error';
+                    dbConfigStatus.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Please fill in Host and Database Name first.';
+                    setTimeout(() => { dbConfigStatus.style.display = 'none'; }, 3000);
+                    return;
+                }
+
+                // Loading state
+                dbAutoGenBtn.disabled = true;
+                dbAutoGenIcon.className = 'fa-solid fa-spinner fa-spin';
+                dbAutoGenText.textContent = 'Generating...';
+                dbConfigStatus.style.display = 'flex';
+                dbConfigStatus.className = 'db-config-status testing';
+                dbConfigStatus.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connecting to database and generating description...';
+
+                try {
+                    const res = await fetch('http://127.0.0.1:8000/api/db_connections/generate_description', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            type: dbType,
+                            host: dbHost,
+                            port: dbPort,
+                            database_name: dbName,
+                            user: dbUser,
+                            password: dbPass,
+                        })
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.description) {
+                        document.getElementById('dbDesc').value = data.description;
+                        dbConfigStatus.className = 'db-config-status success';
+                        dbConfigStatus.innerHTML = '<i class="fa-solid fa-circle-check"></i> Description generated successfully!';
+                        setTimeout(() => { dbConfigStatus.style.display = 'none'; }, 2500);
+                    } else {
+                        throw new Error(data.detail || 'Generation failed');
+                    }
+                } catch (err) {
+                    dbConfigStatus.className = 'db-config-status error';
+                    dbConfigStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${err.message || 'Could not generate description.'}`;
+                } finally {
+                    dbAutoGenBtn.disabled = false;
+                    dbAutoGenIcon.className = 'fa-solid fa-wand-magic-sparkles';
+                    dbAutoGenText.textContent = 'Auto Generate';
+                }
+            });
+        }
+
+        async function loadMCPAgent() {
+            try {
+                const response = await fetch('/html/mcp_agent.html?v=' + Date.now());
+                if (!response.ok) throw new Error("Could not load MCP Agent");
+                contentArea.innerHTML = await response.text();
+
+                if (typeof window.initializeZeusChat === 'function') {
+                    setTimeout(window.initializeZeusChat, 50);
+                }
+            } catch (err) {
+                contentArea.innerHTML = `<div style="color:red; padding:20px;">Error: ${err.message}</div>`;
+            }
+        }
+
+        async function loadTaskAllocation() {
+            try {
+                const response = await fetch('/html/taskAllocation.html?v=' + Date.now());
+                if (!response.ok) throw new Error("Could not load Task Allocation");
+                contentArea.innerHTML = await response.text();
+
+                if (typeof window.initializeTaskAllocation === 'function') {
+                    setTimeout(window.initializeTaskAllocation, 50);
+                }
+            } catch (err) {
+                contentArea.innerHTML = `<div style="color:red; padding:20px;">Error: ${err.message}</div>`;
+            }
+        }
+        // Setup custom generic selects
+        function setupCustomSelect(selectId, triggerId, optionsId, labelId, hiddenInputId) {
+            const select = document.getElementById(selectId);
+            const trigger = document.getElementById(triggerId);
+            const options = document.getElementById(optionsId);
+            const label = document.getElementById(labelId);
+            const hiddenInput = document.getElementById(hiddenInputId);
+
+            if (!select || !trigger || !options || !label || !hiddenInput) return;
+
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.querySelectorAll('.cb-custom-select').forEach(el => {
+                    if (el !== select) el.classList.remove('open');
+                });
+                select.classList.toggle('open');
+            });
+
+            options.querySelectorAll('.cb-custom-select-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    const val = opt.dataset.value || '';
+                    const text = opt.querySelector('span')?.textContent || '';
+
+                    hiddenInput.value = val;
+                    label.textContent = text;
+
+                    options.querySelectorAll('.cb-custom-select-option').forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+                    select.classList.remove('open');
+                });
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!select.contains(e.target)) {
+                    select.classList.remove('open');
+                }
+            });
+
+            const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+            if (descriptor) {
+                Object.defineProperty(hiddenInput, 'value', {
+                    get: function () { return descriptor.get.call(this); },
+                    set: function (val) {
+                        descriptor.set.call(this, val);
+                        options.querySelectorAll('.cb-custom-select-option').forEach(o => {
+                            if (o.dataset.value === val) {
+                                o.classList.add('selected');
+                                label.textContent = o.querySelector('span')?.textContent || '';
+                            } else {
+                                o.classList.remove('selected');
+                            }
+                        });
+                    }
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupCustomSelect('dbConnTypeSelect', 'dbConnTypeTrigger', 'dbConnTypeOptions', 'dbConnTypeLabel', 'dbConnType');
+            setupCustomSelect('apiMethodSelect', 'apiMethodTrigger', 'apiMethodOptions', 'apiMethodLabel', 'apiMethod');
+
+            // Dynamic settings loading (no page reload)
+            async function loadSettings() {
+                const existing = document.getElementById('zeusSettingsModal');
+                if (existing) {
+                    existing.classList.add('active');
+                    // Find renderSettingsTab within local/IIFE scope if any, or trigger active nav-item click
+                    const activeNav = existing.querySelector('.sm-nav-item.active');
+                    if (activeNav) activeNav.click();
+                    return;
+                }
+                try {
+                    const res = await fetch('/html/setting.html?v=' + Date.now());
+                    if (!res.ok) throw new Error("Failed to load settings");
+                    const html = await res.text();
+                    
+                    const temp = document.createElement('div');
+                    temp.innerHTML = html;
+                    
+                    // Extract script
+                    const scriptTag = temp.querySelector('script');
+                    if (scriptTag) {
+                        scriptTag.remove();
+                    }
+                    
+                    // Append elements
+                    while (temp.firstChild) {
+                        document.body.appendChild(temp.firstChild);
+                    }
+                    
+                    // Execute script
+                    if (scriptTag) {
+                        const script = document.createElement('script');
+                        script.text = scriptTag.text;
+                        document.body.appendChild(script);
+                    }
+
+                    // Show settings modal
+                    const settingsModal = document.getElementById('zeusSettingsModal');
+                    if (settingsModal) {
+                        settingsModal.classList.add('active');
+                    }
+                } catch (err) {
+                    console.error("Error loading settings:", err);
+                }
+            }
+
+            const settingsBtn = document.getElementById('sbSettingsBtn');
+            if (settingsBtn) {
+                settingsBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    loadSettings();
+                });
+            }
+
+            // Handle Google OAuth redirect parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('oauth')) {
+                const status = urlParams.get('oauth');
+                if (status === 'success') {
+                    loadSettings();
+                    if (typeof window.showZeusNotification === 'function') {
+                        window.showZeusNotification('Google account connected successfully!', 'success');
+                    }
+                }
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (urlParams.has('error')) {
+                const errorMsg = urlParams.get('error');
+                if (typeof window.showZeusNotification === 'function') {
+                    window.showZeusNotification(`Google connection failed: ${errorMsg}`, 'error');
+                }
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+    </script>
+</body>
+</html>

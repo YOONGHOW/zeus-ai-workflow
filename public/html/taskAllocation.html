@@ -1,0 +1,326 @@
+<div class="ta-container" id="taContainer">
+    <div class="ta-listing-view" id="taListingView">
+        <div class="ta-listing-header">
+            <div>
+                <h1>AI Workflow</h1>
+                <p>Build and manage your automated workflows</p>
+            </div>
+            <button class="ta-create-btn" id="taCreateBtn">
+                <i class="fa-solid fa-plus"></i> Create Workflow
+            </button>
+        </div>
+
+        <!-- Empty State -->
+        <div class="ta-empty-state" id="taEmptyState">
+            <div class="ta-empty-icon">
+                <i class="fa-solid fa-diagram-project"></i>
+            </div>
+            <h3>No tasks yet</h3>
+            <p>Create your first automated workflow to get started</p>
+            <button class="ta-create-btn" id="taEmptyCreateBtn">
+                <i class="fa-solid fa-plus"></i> Create Your First Task
+            </button>
+        </div>
+
+        <!-- Task Table -->
+        <div class="ta-table-wrapper" id="taTableWrapper" style="display: none;">
+            <table class="ta-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Tools</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Schedule</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="taTableBody">
+                    <!-- Populated by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="ta-editor-view" id="taEditorView" style="display: none;">
+
+        <div class="ta-editor-toolbar">
+            <button class="ta-back-btn" id="taBackBtn">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Back</span>
+            </button>
+            <input type="text" class="ta-task-name-input" id="taTaskNameInput" placeholder="Untitled Task" />
+            <input type="text" class="ta-task-desc-input" id="taTaskDescInput" placeholder="Add description..." />
+            <div class="ta-toolbar-actions">
+                <button class="ta-icon-action-btn" id="taUndoBtn" title="Undo (Ctrl+Z)">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+                <button class="ta-icon-action-btn" id="taRedoBtn" title="Redo (Ctrl+Y)">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+                <button class="ta-icon-action-btn" id="taLogsToggleBtn" title="Toggle Execution Logs">
+                    <i class="fa-solid fa-terminal"></i>
+                </button>
+                <span style="width: 1px; height: 20px; background: rgba(255,255,255,0.1); margin: 0 4px; display: inline-block; vertical-align: middle;"></span>
+                <button class="ta-cancel-btn" id="taCancelBtn">Cancel</button>
+                <button class="ta-save-btn" id="taSaveBtn" style="margin-right: 8px;">
+                    <i class="fa-solid fa-floppy-disk"></i> Save
+                </button>
+                <button class="ta-create-btn" id="taEditorRunBtn">
+                    <i class="fa-solid fa-play"></i> Run
+                </button>
+            </div>
+        </div>
+
+        <!-- Editor Body -->
+        <div class="ta-editor-body">
+
+            <!-- Tools Sidebar -->
+            <div class="ta-tools-sidebar" id="taToolsSidebar">
+                <div class="ta-tools-header">
+                    <h3><i class="fa-solid fa-toolbox" style="font-size:13px; margin-right:4px; opacity:.5;"></i> Tools
+                    </h3>
+                    <p>Drag to canvas</p>
+                </div>
+                
+                <button class="ta-template-btn" id="taTemplateBtn" title="Auto-populate with a starter template">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Create a Template
+                </button>
+
+                <div class="ta-tools-list" id="taToolsList">
+
+                    <div class="ta-tools-section-label">Flow</div>
+
+                    <div class="ta-tool-card ta-tool-start" draggable="true" data-tool-type="start">
+                        <div class="ta-tool-card-icon"><i class="fa-solid fa-play"></i></div>
+                        <div class="ta-tool-card-info">
+                            <div class="ta-tool-card-name">Start</div>
+                            <div class="ta-tool-card-desc">Workflow entry</div>
+                        </div>
+                    </div>
+
+                    <div class="ta-tool-card ta-tool-end" draggable="true" data-tool-type="end">
+                        <div class="ta-tool-card-icon"><i class="fa-solid fa-flag-checkered"></i></div>
+                        <div class="ta-tool-card-info">
+                            <div class="ta-tool-card-name">End</div>
+                            <div class="ta-tool-card-desc">Workflow finish</div>
+                        </div>
+                    </div>
+
+                    <div class="ta-tools-divider"></div>
+                    <div class="ta-tools-section-label">Tools</div>
+
+                    <div class="ta-tool-card ta-tool-gmail" draggable="true" data-tool-type="gmail">
+                        <div class="ta-tool-card-icon"><i class="fa-solid fa-envelope"></i></div>
+                        <div class="ta-tool-card-info">
+                            <div class="ta-tool-card-name">Gmail</div>
+                            <div class="ta-tool-card-desc">Send & read emails</div>
+                        </div>
+                    </div>
+
+                    <div class="ta-tool-card ta-tool-calendar" draggable="true" data-tool-type="calendar">
+                        <div class="ta-tool-card-icon"><i class="fa-solid fa-calendar-days"></i></div>
+                        <div class="ta-tool-card-info">
+                            <div class="ta-tool-card-name">Calendar</div>
+                            <div class="ta-tool-card-desc">Schedule events</div>
+                        </div>
+                    </div>
+
+                    <div class="ta-tool-card ta-tool-database" draggable="true" data-tool-type="database">
+                        <div class="ta-tool-card-icon"><i class="fa-solid fa-database"></i></div>
+                        <div class="ta-tool-card-info">
+                            <div class="ta-tool-card-name">Database</div>
+                            <div class="ta-tool-card-desc">Query databases</div>
+                        </div>
+                    </div>
+
+                    <div class="ta-tool-card ta-tool-api" draggable="true" data-tool-type="api">
+                        <div class="ta-tool-card-icon"><i class="fa-solid fa-plug"></i></div>
+                        <div class="ta-tool-card-info">
+                            <div class="ta-tool-card-name">REST API</div>
+                            <div class="ta-tool-card-desc">Call API endpoints</div>
+                        </div>
+                    </div>
+
+                    <div class="ta-tool-card ta-tool-web-search" draggable="true" data-tool-type="web_search">
+                        <div class="ta-tool-card-icon"><i class="fa-solid fa-globe"></i></div>
+                        <div class="ta-tool-card-info">
+                            <div class="ta-tool-card-name">Web Search</div>
+                            <div class="ta-tool-card-desc">Search the web</div>
+                        </div>
+                    </div>
+
+                    <div class="ta-tool-card ta-tool-ocr" draggable="true" data-tool-type="ocr">
+                        <div class="ta-tool-card-icon"><i class="fa-solid fa-file-invoice"></i></div>
+                        <div class="ta-tool-card-info">
+                            <div class="ta-tool-card-name">OCR / Docs</div>
+                            <div class="ta-tool-card-desc">Extract from docs</div>
+                        </div>
+                    </div>
+
+                    <div class="ta-tool-card ta-tool-llm" draggable="true" data-tool-type="llm">
+                        <div class="ta-tool-card-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                        <div class="ta-tool-card-info">
+                            <div class="ta-tool-card-name">LLM Prompt</div>
+                            <div class="ta-tool-card-desc">AI instructions</div>
+                        </div>
+                    </div>
+
+                    <div class="ta-tool-card ta-tool-report" draggable="true" data-tool-type="report">
+                        <div class="ta-tool-card-icon"><i class="fa-solid fa-file-pdf"></i></div>
+                        <div class="ta-tool-card-info">
+                            <div class="ta-tool-card-name">Report (PDF)</div>
+                            <div class="ta-tool-card-desc">Generate PDF report</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Canvas Area -->
+            <div class="ta-canvas-wrapper" id="taCanvasWrapper">
+                <svg class="ta-connections-svg" id="taConnectionsSvg"></svg>
+                <div class="ta-canvas" id="taCanvas">
+                    <div class="ta-canvas-hint" id="taCanvasHint">
+                        <i class="fa-solid fa-hand-pointer"></i>
+                        <p>Drag tools here to build your workflow</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Execution Logs Sidebar -->
+            <div class="ta-execution-logs" id="taExecutionLogs" style="display: none;">
+                <div class="ta-logs-header">
+                    <h3><i class="fa-solid fa-terminal" style="font-size:13px; margin-right:4px;"></i> Execution Logs</h3>
+                    <button class="ta-logs-close" id="taLogsClose">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="ta-logs-body" id="taLogsBody">
+                    <!-- Logs stream here -->
+                </div>
+            </div>
+
+            <div class="ta-config-panel" id="taConfigPanel" style="display: none;">
+                <div class="ta-config-header">
+                    <h3><i id="taConfigIcon"></i> <span id="taConfigTitle">Configure Node</span></h3>
+                    <button class="ta-config-close" id="taConfigClose">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="ta-config-body">
+                    <div id="taNodeDynamicConfig">
+                        <!-- Dynamic config fields injected here based on node type -->
+                    </div>
+                    <button class="ta-config-apply" id="taConfigApply">
+                        <i class="fa-solid fa-check" style="margin-right:4px;"></i> Apply Configuration
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Schedule Sidebar -->
+    <div class="ta-schedule-sidebar" id="taScheduleSidebar">
+
+        <!-- Header -->
+        <div class="ta-sched-header">
+            <div class="ta-sched-header-icon">
+                <i class="fa-regular fa-clock"></i>
+            </div>
+            <div class="ta-sched-header-text">
+                <span class="ta-sched-title">Schedule Task</span>
+                <span class="ta-sched-subtitle" id="taScheduleTaskName">Configure run frequency</span>
+            </div>
+            <button class="ta-sched-close" id="taScheduleClose" title="Close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="ta-sched-body">
+
+            <!-- Frequency Cards -->
+            <div class="ta-sched-section">
+                <label class="ta-sched-label">Run Frequency</label>
+                <div class="ta-sched-freq-grid">
+                    <label class="ta-sched-freq-card" data-freq="once">
+                        <input type="radio" name="taSchedFreq" value="once" id="taSchedOnce" />
+                        <span class="ta-sched-freq-icon"><i class="fa-solid fa-bolt"></i></span>
+                        <span class="ta-sched-freq-name">Run Once</span>
+                        <span class="ta-sched-freq-desc">Execute immediately</span>
+                    </label>
+                    <label class="ta-sched-freq-card" data-freq="daily">
+                        <input type="radio" name="taSchedFreq" value="daily" id="taSchedDaily" />
+                        <span class="ta-sched-freq-icon"><i class="fa-solid fa-sun"></i></span>
+                        <span class="ta-sched-freq-name">Every Day</span>
+                        <span class="ta-sched-freq-desc">Daily at set time</span>
+                    </label>
+                    <label class="ta-sched-freq-card" data-freq="weekly">
+                        <input type="radio" name="taSchedFreq" value="weekly" id="taSchedWeekly" />
+                        <span class="ta-sched-freq-icon"><i class="fa-solid fa-calendar-week"></i></span>
+                        <span class="ta-sched-freq-name">Weekly</span>
+                        <span class="ta-sched-freq-desc">Once per week</span>
+                    </label>
+                </div>
+                <!-- Hidden for logic compat -->
+                <select id="taScheduleFrequency" style="display:none;">
+                    <option value="once">Run once</option>
+                    <option value="daily">Every day</option>
+                    <option value="weekly">Run week once</option>
+                </select>
+            </div>
+
+            <!-- Day Picker -->
+            <div class="ta-sched-section" id="taScheduleDayContainer" style="display:none;">
+                <label class="ta-sched-label">Day of the Week</label>
+                <div class="ta-sched-day-grid">
+                    <label class="ta-sched-day-pill"><input type="radio" name="taSchedDay" value="Monday" /><span>Mon</span></label>
+                    <label class="ta-sched-day-pill"><input type="radio" name="taSchedDay" value="Tuesday" /><span>Tue</span></label>
+                    <label class="ta-sched-day-pill"><input type="radio" name="taSchedDay" value="Wednesday" /><span>Wed</span></label>
+                    <label class="ta-sched-day-pill"><input type="radio" name="taSchedDay" value="Thursday" /><span>Thu</span></label>
+                    <label class="ta-sched-day-pill"><input type="radio" name="taSchedDay" value="Friday" /><span>Fri</span></label>
+                    <label class="ta-sched-day-pill"><input type="radio" name="taSchedDay" value="Saturday" /><span>Sat</span></label>
+                    <label class="ta-sched-day-pill"><input type="radio" name="taSchedDay" value="Sunday" /><span>Sun</span></label>
+                </div>
+                <select id="taScheduleDay" style="display:none;">
+                    <option value="Monday">Monday</option>
+                    <option value="Tuesday">Tuesday</option>
+                    <option value="Wednesday">Wednesday</option>
+                    <option value="Thursday">Thursday</option>
+                    <option value="Friday">Friday</option>
+                    <option value="Saturday">Saturday</option>
+                    <option value="Sunday">Sunday</option>
+                </select>
+            </div>
+
+            <!-- Time Picker -->
+            <div class="ta-sched-section" id="taScheduleTimeContainer" style="display:none;">
+                <label class="ta-sched-label">Run at time</label>
+                <div class="ta-sched-time-wrapper">
+                    <i class="fa-regular fa-clock ta-sched-time-icon"></i>
+                    <input type="time" id="taScheduleTime" class="ta-sched-time-input" />
+                </div>
+            </div>
+
+            <!-- Summary Banner -->
+            <div class="ta-sched-summary" id="taSchedSummary">
+                <i class="fa-solid fa-circle-info ta-sched-summary-icon"></i>
+                <span id="taSchedSummaryText">Task will run once when you press Play.</span>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="ta-sched-footer">
+            <button class="ta-sched-cancel-btn" id="taScheduleCloseAlt">Cancel</button>
+            <button class="ta-sched-save-btn" id="taScheduleSaveBtn">
+                <i class="fa-solid fa-check"></i> Save Schedule
+            </button>
+        </div>
+
+    </div>
+
+</div>

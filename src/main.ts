@@ -1,0 +1,11 @@
+import { initializeOCRPage } from './ocrLogic';
+import './notification';
+import { initializeZeusChat } from './mcpLogic';
+import { initializeTaskAllocation, loadGeneratedWorkflow } from './taskAllocationLogic';
+import { initializeDocumentsPage } from './documentLogic';
+(window as any).initializeOCRPage = initializeOCRPage;
+(window as any).initializeZeusChat = initializeZeusChat;
+(window as any).initializeTaskAllocation = initializeTaskAllocation;
+(window as any).loadGeneratedWorkflow = loadGeneratedWorkflow;
+(window as any).initializeDocumentsPage = initializeDocumentsPage;
+// console.log("Main script loaded. Ready to initialize Unified Workspace.");

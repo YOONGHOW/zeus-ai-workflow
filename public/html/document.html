@@ -1,0 +1,268 @@
+<style>
+  /* Document Library Theme Variables */
+  .docs-container {
+    --doc-bg-primary: #F8FAFC;
+    --doc-bg-secondary: #FFFFFF;
+    --doc-border: #E2E8F0;
+    --doc-text-primary: #0F172A;
+    --doc-text-secondary: #475569;
+    --doc-text-muted: #94A3B8;
+    --doc-card-bg: #FFFFFF;
+    --doc-card-hover: #F1F5F9;
+    --doc-card-active: rgba(59, 130, 246, 0.1);
+    --doc-card-active-border: #3B82F6;
+    --doc-input-bg: #FFFFFF;
+    --doc-input-border: #CBD5E1;
+    --doc-input-text: #0F172A;
+    --doc-canvas-bg: #F1F5F9;
+    --doc-details-bg: #F8FAFC;
+    --doc-header-bg: #FFFFFF;
+    --modal-bg: rgba(0, 0, 0, 0.5);
+    --modal-content-bg: #FFFFFF;
+  }
+
+  body.dark-mode .docs-container {
+    --doc-bg-primary: #000000;
+    --doc-bg-secondary: #0a0a0a;
+    --doc-border: rgba(255, 255, 255, 0.08);
+    --doc-text-primary: #F3F4F6;
+    --doc-text-secondary: #D1D5DB;
+    --doc-text-muted: rgba(255, 255, 255, 0.4);
+    --doc-card-bg: rgba(255, 255, 255, 0.03);
+    --doc-card-hover: rgba(255, 255, 255, 0.06);
+    --doc-card-active: rgba(59, 130, 246, 0.15);
+    --doc-card-active-border: #3B82F6;
+    --doc-input-bg: rgba(255, 255, 255, 0.05);
+    --doc-input-border: rgba(255, 255, 255, 0.1);
+    --doc-input-text: #FFFFFF;
+    --doc-canvas-bg: #000000;
+    --doc-details-bg: #030303;
+    --doc-header-bg: #050505;
+    --modal-bg: rgba(0, 0, 0, 0.7);
+    --modal-content-bg: #0a0a0a;
+  }
+
+  .docs-btn:hover {
+    background: var(--doc-card-hover) !important;
+  }
+
+  #docSearch:focus {
+    border-color: #3B82F6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+  }
+
+  .docs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    padding: 20px 40px 40px 40px;
+  }
+
+  .doc-card {
+    border: 1px solid var(--doc-border);
+    border-radius: 8px;
+    background: var(--doc-card-bg);
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    height: 280px;
+  }
+
+  .doc-card:hover {
+    border-color: var(--doc-card-active-border);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+
+  .doc-thumbnail {
+    height: 210px;
+    flex-shrink: 0;
+    background: var(--doc-bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid var(--doc-border);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .doc-thumbnail canvas,
+  .doc-thumbnail img {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    min-width: 100% !important;
+    min-height: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    display: block;
+  }
+
+  .doc-info {
+    padding: 12px;
+  }
+
+  .doc-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--doc-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+  }
+
+  .doc-meta {
+    font-size: 11px;
+    color: var(--doc-text-muted);
+  }
+
+  /* Modal Styles */
+  #docModalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--modal-bg);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  #docModalContent {
+    background: var(--modal-content-bg);
+    border-radius: 12px;
+    border: 1px solid var(--doc-border);
+    width: 90%;
+    max-width: 1000px;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+</style>
+
+<div class="docs-container"
+  style="display: flex; flex-direction: column; height: 100%; font-family: 'Inter', sans-serif; background: var(--doc-bg-primary); color: var(--doc-text-primary); transition: background 0.3s, color 0.3s;">
+
+  <!-- Header with search -->
+  <div
+    style="padding: 32px 40px 20px 40px; border-bottom: 1px solid var(--doc-border); background: var(--doc-bg-secondary); display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0;">
+    <div>
+      <h1
+        style="font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 4px; background: linear-gradient(135deg, var(--doc-text-primary) 0%, #a0a0a0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+        Document Library</h1>
+      <p style="font-size: 13px; color: var(--doc-text-muted); margin: 0;">Store and manage your personal document
+        library</p>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+      <button id="docSortBtn" title="Sort: New to Old"
+        style="display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--doc-input-border); background: var(--doc-input-bg); color: var(--doc-input-text); cursor: pointer; transition: all 0.2s; box-sizing: border-box; outline: none;">
+        <i class="fa-solid fa-arrow-down-wide-short" id="docSortIcon" style="font-size: 14px;"></i>
+      </button>
+      <div style="position: relative; width: 300px;">
+        <i class="fa-solid fa-magnifying-glass"
+          style="position: absolute; left: 12px; top: 12px; color: var(--doc-text-muted); font-size: 14px;"></i>
+        <input type="text" id="docSearch" placeholder="Search documents..."
+          style="width: 100%; padding: 10px 12px 10px 36px; border-radius: 8px; border: 1px solid var(--doc-input-border); background: var(--doc-input-bg); color: var(--doc-input-text); outline: none; font-size: 14px; box-sizing: border-box; transition: all 0.2s;">
+      </div>
+    </div>
+  </div>
+
+  <!-- Scrollable list of cards -->
+  <div id="docsList" class="docs-grid" style="flex: 1; overflow-y: auto;">
+    <!-- Populated by JS -->
+    <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: var(--doc-text-muted);">
+      <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px; color: #3B82F6;"></i>
+      <p style="margin: 0; font-size: 14px;">Loading documents...</p>
+    </div>
+  </div>
+
+  <!-- MODAL FOR PREVIEW -->
+  <div id="docModalOverlay">
+    <div id="docModalContent">
+      <!-- Preview Header -->
+      <div
+        style="padding: 16px 24px; border-bottom: 1px solid var(--doc-border); display: flex; justify-content: space-between; align-items: center; background: var(--doc-header-bg);">
+        <div>
+          <h3 id="previewTitle"
+            style="font-size: 18px; font-weight: 600; margin: 0 0 4px; color: var(--doc-text-primary);">
+            document_name.pdf</h3>
+          <span id="previewMeta" style="font-size: 13px; color: var(--doc-text-muted);">PDF Document</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <a id="previewDownloadBtn" href="#" target="_blank" download class="docs-btn"
+            style="display: inline-flex; align-items: center; gap: 6px; background: var(--doc-card-bg); color: var(--doc-text-primary); border: 1px solid var(--doc-border); padding: 8px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+            <i class="fa-solid fa-download"></i> Download
+          </a>
+          <button id="previewDeleteBtn" class="docs-btn"
+            style="display: inline-flex; align-items: center; gap: 6px; background: rgba(239, 68, 68, 0.1); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.2); padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+            <i class="fa-solid fa-trash"></i> Delete
+          </button>
+          <button id="closeModalBtn" class="docs-btn"
+            style="margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; background: transparent; color: var(--doc-text-muted); border: none; font-size: 20px; cursor: pointer; transition: color 0.2s;">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Preview Render Area -->
+      <div style="flex: 1; display: flex; position: relative; background: var(--doc-canvas-bg); overflow: hidden;">
+        <!-- Left: Details/Metadata Panel -->
+        <div id="detailsPanel"
+          style="width: 300px; border-right: 1px solid var(--doc-border); padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; background: var(--doc-details-bg);">
+          <div style="flex: 1; display: flex; flex-direction: column;">
+            <h4
+              style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--doc-text-muted); margin: 0 0 10px;">
+              Document Text Content</h4>
+            <textarea id="docContentText" readonly
+              style="flex: 1; width: 100%; background: var(--doc-input-bg); border: 1px solid var(--doc-border); color: var(--doc-text-secondary); font-size: 12px; padding: 10px; border-radius: 6px; resize: none; font-family: monospace; outline: none;"></textarea>
+          </div>
+        </div>
+
+        <!-- Right: PDF/Media Viewer Canvas -->
+        <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;">
+          <!-- Custom zoom bar for pdf -->
+          <div id="pdfZoomBar"
+            style="display: none; padding: 8px 16px; background: var(--doc-details-bg); border-bottom: 1px solid var(--doc-border); align-items: center; justify-content: center; gap: 12px; z-index: 10;">
+            <button id="docPrevPage"
+              style="background: var(--doc-card-bg); border: 1px solid var(--doc-border); color: var(--doc-text-primary); border-radius: 4px; padding: 4px 8px; cursor: pointer; transition: all 0.2s;"><i
+                class="fa-solid fa-chevron-left"></i></button>
+            <span id="docPageNum" style="font-size: 13px; color: var(--doc-text-secondary);">1 / 1</span>
+            <button id="docNextPage"
+              style="background: var(--doc-card-bg); border: 1px solid var(--doc-border); color: var(--doc-text-primary); border-radius: 4px; padding: 4px 8px; cursor: pointer; transition: all 0.2s;"><i
+                class="fa-solid fa-chevron-right"></i></button>
+            <div style="width: 1px; height: 16px; background: var(--doc-border);"></div>
+            <button id="docZoomOut"
+              style="background: var(--doc-card-bg); border: 1px solid var(--doc-border); color: var(--doc-text-primary); border-radius: 4px; padding: 4px 8px; cursor: pointer; transition: all 0.2s;">-</button>
+            <span id="docZoomVal" style="font-size: 13px; color: var(--doc-text-secondary);">100%</span>
+            <button id="docZoomIn"
+              style="background: var(--doc-card-bg); border: 1px solid var(--doc-border); color: var(--doc-text-primary); border-radius: 4px; padding: 4px 8px; cursor: pointer; transition: all 0.2s;">+</button>
+          </div>
+
+          <!-- The rendering canvas container -->
+          <div id="docCanvasWrapper"
+            style="flex: 1; overflow: auto; display: flex; align-items: flex-start; justify-content: center; padding: 20px;">
+            <canvas id="docPdfCanvas"
+              style="box-shadow: 0 4px 20px rgba(0,0,0,0.15); background: white; border-radius: 4px; display: none;"></canvas>
+            <img id="docImagePreview"
+              style="max-width: 100%; max-height: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 4px; display: none;" />
+            <div id="docFallbackPreview"
+              style="color: var(--doc-text-muted); text-align: center; padding-top: 60px; display: none;">
+              <i class="fa-solid fa-file-arrow-down"
+                style="font-size: 48px; color: var(--doc-border); margin-bottom: 16px;"></i>
+              <p>Preview not supported. Use the Download button above to save the file.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

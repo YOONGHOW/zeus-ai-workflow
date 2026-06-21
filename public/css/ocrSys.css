@@ -1,0 +1,807 @@
+/* =========================================
+   OCR SYSTEM — PREMIUM REDESIGN
+   ========================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* =========================================
+   1. MAIN LAYOUT
+   ========================================= */
+.ocr-container {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background: #f8fafc;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+#ocrContainer {
+    transition: transform 0.2s ease-in-out;
+    transform-origin: top center;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+}
+
+/* =========================================
+   2. LEFT SIDEBAR PANEL
+   ========================================= */
+.ocr-sidebar {
+    background: #ffffff;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    z-index: 10;
+    overflow: hidden;
+}
+
+.sidebar-tabs {
+    display: flex;
+    background: #f8fafc;
+    padding: 10px 10px 0;
+    gap: 4px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 13px;
+    color: #94a3b8;
+    border-radius: 8px 8px 0 0;
+    transition: all 0.2s ease;
+    font-family: 'Inter', sans-serif;
+}
+
+.tab-btn:hover {
+    background: rgba(99, 102, 241, 0.06);
+    color: #6366f1;
+}
+
+.tab-btn.active {
+    background: #ffffff;
+    color: #6366f1;
+    border: 1px solid #e2e8f0;
+    border-bottom: 1px solid #fff;
+    margin-bottom: -1px;
+    font-weight: 600;
+}
+
+/* --- Sidebar Scrollable Content --- */
+.sidebar-content {
+    display: none;
+    flex-direction: column;
+    padding: 16px;
+    flex: 1;
+    overflow-y: auto;
+    height: 0;
+    gap: 14px;
+}
+
+.sidebar-content.active {
+    display: flex;
+}
+
+/* =========================================
+   3. HEADER SECTION
+   ========================================= */
+.ocr-header {
+    padding-bottom: 4px;
+}
+
+.ocr-header h2 {
+    margin: 0;
+    font-size: 16px;
+    color: #0f172a;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+
+.ocr-header p {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+/* =========================================
+   4. STATUS MESSAGE
+   ========================================= */
+.ocr-status-message {
+    border: 1px solid #dbeafe;
+    background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+    color: #3b82f6;
+    border-radius: 10px;
+    padding: 11px 14px 10px 38px;
+    font-size: 12px;
+    line-height: 1.5;
+    font-weight: 500;
+    position: relative;
+}
+
+.ocr-status-message::before {
+    content: 'ℹ';
+    font-size: 16px;
+    position: absolute;
+    left: 14px;
+    top: 9px;
+}
+
+.ocr-status-message[data-tone="success"] {
+    border-color: #bbf7d0;
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    color: #16a34a;
+}
+
+.ocr-status-message[data-tone="success"]::before {
+    content: '✓';
+}
+
+.ocr-status-message[data-tone="error"] {
+    border-color: #fecaca;
+    background: linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%);
+    color: #dc2626;
+}
+
+.ocr-status-message[data-tone="error"]::before {
+    content: '✕';
+}
+
+/* =========================================
+   5. FIELD CHECKLIST
+   ========================================= */
+.ocr-status-message[data-tone="loading"] {
+    border-color: #bfdbfe;
+    background: linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%);
+    color: #2563eb;
+}
+
+.ocr-status-message[data-tone="loading"]::before {
+    content: '';
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(37, 99, 235, 0.25);
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: ocrSpin 0.8s linear infinite;
+    top: 12px;
+}
+
+.ocr-processing-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 92px;
+    padding: 18px;
+    color: #2563eb;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+}
+
+@keyframes ocrSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.field-checklist {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.field-checklist label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #334155;
+    cursor: pointer;
+    padding: 10px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.15s ease;
+    font-weight: 500;
+}
+
+.field-checklist label:last-child {
+    border-bottom: none;
+}
+
+.field-checklist label:hover {
+    background: #f1f5f9;
+}
+
+.field-checklist input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #cbd5e1;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+    background: white;
+}
+
+.field-checklist input[type="checkbox"]:checked {
+    background: #6366f1;
+    border-color: #6366f1;
+}
+
+.field-checklist input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 0px;
+    width: 5px;
+    height: 9px;
+    border: 2px solid white;
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg);
+}
+
+/* =========================================
+   6. PROCESS BUTTON
+   ========================================= */
+.process-btn {
+    width: 100%;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.3px;
+    font-family: 'Inter', sans-serif;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.process-btn::before {
+    content: '⚡';
+    font-size: 15px;
+}
+
+.process-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+    transform: translateY(-1px);
+}
+
+.process-btn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.process-btn:disabled {
+    background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+    cursor: not-allowed;
+    box-shadow: none;
+    opacity: 0.7;
+}
+
+/* =========================================
+   7. EXTRACTED DATA / JSON OUTPUT
+   ========================================= */
+.text-results {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.text-results.hidden {
+    display: none;
+}
+
+.text-results h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.json-box {
+    background: #f8fafc;
+    color: #334155;
+    padding: 14px;
+    border-radius: 10px;
+    font-family: 'Consolas', 'Monaco', 'JetBrains Mono', monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    max-height: 260px;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    line-height: 1.6;
+    letter-spacing: 0.3px;
+}
+
+.json-box::-webkit-scrollbar {
+    width: 6px;
+}
+
+.json-box::-webkit-scrollbar-track {
+    background: #1e293b;
+    border-radius: 4px;
+}
+
+.json-box::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+}
+
+/* =========================================
+   8. RIGHT PREVIEW PANEL
+   ========================================= */
+.ocr-preview {
+    background: #1e2228;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    overflow: auto;
+    position: relative;
+    padding: 24px 24px 70px;
+    height: 100%;
+    gap: 0;
+}
+
+.canvas-wrapper {
+    position: relative;
+    flex-shrink: 0;
+    margin: auto;
+    border-radius: 4px;
+    overflow: hidden;
+    background: transparent;
+    box-shadow: none;
+}
+
+.canvas-wrapper:has(canvas) {
+    background: #ffffff;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.ocr-empty-state {
+    color: #64748b;
+    margin-top: 80px;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.ocr-empty-state::before {
+    content: '📄';
+    font-size: 48px;
+    filter: grayscale(0.4) opacity(0.5);
+}
+
+/* =========================================
+   9. ZOOM CONTROLS
+   ========================================= */
+.zoom-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 6px 12px;
+    border-radius: 999px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    z-index: 5;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.zoom-controls button {
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 16px;
+    color: #cbd5e1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.zoom-controls button:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+.zoom-controls span {
+    font-size: 12px;
+    font-weight: 600;
+    color: #94a3b8;
+    min-width: 40px;
+    text-align: center;
+    font-family: 'Inter', monospace;
+}
+
+/* =========================================
+   10. UPLOAD SECTION (if needed)
+   ========================================= */
+.ocr-upload-section {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 14px;
+}
+
+.ocr-upload-section h3 {
+    font-size: 12px;
+    margin-bottom: 10px;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.upload-trigger-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+    color: #3b82f6;
+    border: 2px dashed #bfdbfe;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.2s ease;
+    text-align: center;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.upload-trigger-btn:hover {
+    background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
+    border-color: #3b82f6;
+    transform: translateY(-1px);
+}
+
+.file-name {
+    margin-top: 8px;
+    font-size: 11px;
+    color: #94a3b8;
+    text-align: center;
+    font-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* =========================================
+   11. DOCUMENT TYPE SELECT
+   ========================================= */
+.documentTypeSelect {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    color: #334155;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+    padding-right: 36px;
+}
+
+.documentTypeSelect:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* =========================================
+   12. HIGHLIGHT OVERLAYS
+   ========================================= */
+.highlight-overlay {
+    position: absolute;
+    border: 2px solid rgba(99, 102, 241, 0.7);
+    background: rgba(99, 102, 241, 0.08);
+    border-radius: 3px;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.highlight-overlay:hover {
+    background: rgba(99, 102, 241, 0.15);
+}
+
+/* =========================================
+   DARK MODE OVERRIDES
+   ========================================= */
+body.dark-mode .ocr-container {
+    background: #131314;
+}
+
+body.dark-mode .ocr-sidebar {
+    background: #1e1f20;
+    border-right-color: rgba(255, 255, 255, 0.08);
+}
+
+body.dark-mode .sidebar-tabs {
+    background: #131314;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+body.dark-mode .tab-btn {
+    color: #64748b;
+}
+
+body.dark-mode .tab-btn.active {
+    background: #1e1f20;
+    color: #818cf8;
+    border-color: rgba(255, 255, 255, 0.08);
+    border-bottom-color: #1e1f20;
+}
+
+body.dark-mode .ocr-header h2 {
+    color: #e2e8f0;
+}
+
+body.dark-mode .ocr-header p {
+    color: #64748b;
+}
+
+body.dark-mode .field-checklist {
+    background: #131314;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+body.dark-mode .field-checklist label {
+    color: #cbd5e1;
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .field-checklist label:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+body.dark-mode .field-checklist input[type="checkbox"] {
+    background: #282a2c;
+    border-color: #334155;
+}
+
+body.dark-mode .ocr-status-message {
+    background: rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.25);
+    color: #60a5fa;
+}
+
+body.dark-mode .documentTypeSelect {
+    background-color: #282a2c;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+}
+
+body.dark-mode .text-results h3 {
+    color: #64748b;
+}
+
+body.dark-mode .json-box {
+    background: #0f172a;
+    color: #94d1a0;
+    border-color: #1e293b;
+}
+
+/* =========================================
+   13. DOCUMENT HISTORY MODAL
+   ========================================= */
+.mcp-extractor-history {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #475569;
+    padding: 6px 10px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    margin-right: 8px;
+}
+.mcp-extractor-history:hover {
+    background: rgba(99, 102, 241, 0.08);
+    color: #6366f1;
+}
+
+body.dark-mode .mcp-extractor-history {
+    color: #cbd5e1;
+}
+body.dark-mode .mcp-extractor-history:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #818cf8;
+}
+
+.zeus-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+.zeus-modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.zeus-modal-content {
+    background: #ffffff;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 550px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    transform: scale(0.95);
+    transition: transform 0.2s ease;
+}
+.zeus-modal-overlay.active .zeus-modal-content {
+    transform: scale(1);
+}
+
+.zeus-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+.zeus-modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #0f172a;
+}
+.zeus-modal-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #64748b;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+.zeus-modal-close:hover {
+    background: #cbd5e1;
+    color: #0f172a;
+}
+
+.zeus-modal-body {
+    padding: 20px;
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.zeus-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+}
+.zeus-history-table th {
+    font-weight: 600;
+    color: #475569;
+    padding: 10px 12px;
+    border-bottom: 2px solid #e2e8f0;
+    background: #f8fafc;
+}
+.zeus-history-table td {
+    padding: 12px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    vertical-align: middle;
+}
+.zeus-history-table tr:hover td {
+    background: #f8fafc;
+}
+
+.zeus-history-select-btn {
+    background: #6366f1;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.zeus-history-select-btn:hover {
+    background: #4f46e5;
+}
+
+/* Dark Mode Modal Overrides */
+body.dark-mode .zeus-modal-content {
+    background: #1e1f20;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+body.dark-mode .zeus-modal-header {
+    background: #131314;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+body.dark-mode .zeus-modal-header h3 {
+    color: #e2e8f0;
+}
+body.dark-mode .zeus-modal-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+body.dark-mode .zeus-history-table th {
+    color: #94a3b8;
+    background: #131314;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+body.dark-mode .zeus-history-table td {
+    color: #cbd5e1;
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+body.dark-mode .zeus-history-table tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+}
+body.dark-mode .zeus-history-select-btn {
+    background: #818cf8;
+}
+body.dark-mode .zeus-history-select-btn:hover {
+    background: #6366f1;
+}

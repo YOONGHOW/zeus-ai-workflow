@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zeus AI Agent - Login</title>
+    <meta name="description" content="Sign in or register for Zeus AI Agent — your intelligent workspace assistant.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/auth.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Animated Background -->
+    <div class="auth-page-bg">
+        <div class="auth-orb auth-orb--1"></div>
+        <div class="auth-orb auth-orb--2"></div>
+        <div class="auth-orb auth-orb--3"></div>
+        <div class="auth-orb auth-orb--4"></div>
+        <div class="auth-mesh"></div>
+        <canvas id="authParticles"></canvas>
+    </div>
+
+    <!-- Auth Container -->
+    <div class="auth-wrapper">
+        <div class="auth-container">
+            <!-- LEFT HERO SECTION -->
+            <div class="auth-hero">
+                <h1 class="auth-hero-title">Zeus Workflow AI</h1>
+                <p class="auth-hero-desc">Your premium intelligent workspace assistant. Seamlessly manage databases,
+                    execute REST API workflows, and extract structured data from documents with advanced AI.</p>
+
+                <div class="auth-hero-features">
+                    <div class="hero-feature">
+                        <i class="fa-solid fa-database"></i>
+                        <span>Direct Database Operations</span>
+                    </div>
+                    <div class="hero-feature">
+                        <i class="fa-solid fa-plug"></i>
+                        <span>REST API Integration</span>
+                    </div>
+                    <div class="hero-feature">
+                        <i class="fa-solid fa-file-invoice"></i>
+                        <span>Document OCR Extraction</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT FORMS SECTION -->
+            <div class="auth-forms">
+                <!-- LOGIN CARD -->
+                <div class="auth-modal" id="loginModal">
+                    <div class="auth-header">
+                        <h2>Welcome back</h2>
+                        <p>Sign in to your account to continue</p>
+                    </div>
+
+                    <div class="auth-form-group">
+                        <label for="loginEmail">Email</label>
+                        <div class="auth-input-wrapper">
+                            <i class="fa-regular fa-envelope input-icon"></i>
+                            <input type="email" class="auth-input" id="loginEmail" placeholder="you@example.com"
+                                autocomplete="email">
+                        </div>
+                    </div>
+
+                    <div class="auth-form-group">
+                        <label for="loginPassword">Password</label>
+                        <div class="auth-input-wrapper">
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <input type="password" class="auth-input" id="loginPassword"
+                                placeholder="Enter your password" autocomplete="current-password">
+                            <button type="button" class="auth-toggle-pw" id="toggleLoginPw" tabindex="-1"><i
+                                    class="fa-regular fa-eye"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="auth-error" id="loginError"></div>
+                    <button class="auth-btn" id="loginBtn">
+                        <span>Sign In</span>
+                    </button>
+
+                    <div class="auth-switch">
+                        Don't have an account? <a id="showRegister">Create one</a>
+                    </div>
+                </div>
+
+                <!-- REGISTER CARD -->
+                <div class="auth-modal" id="registerModal" style="display: none;">
+                    <div class="auth-header">
+                        <h2>Create account</h2>
+                        <p>Register to get started with Zeus AI</p>
+                    </div>
+
+                    <div class="auth-form-group">
+                        <label for="registerEmail">Email</label>
+                        <div class="auth-input-wrapper">
+                            <i class="fa-regular fa-envelope input-icon"></i>
+                            <input type="email" class="auth-input" id="registerEmail" placeholder="you@example.com"
+                                autocomplete="email">
+                        </div>
+                    </div>
+
+                    <div class="auth-form-group">
+                        <label for="registerPassword">Password</label>
+                        <div class="auth-input-wrapper">
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <input type="password" class="auth-input" id="registerPassword"
+                                placeholder="Create a password" autocomplete="new-password">
+                            <button type="button" class="auth-toggle-pw" id="toggleRegPw" tabindex="-1"><i
+                                    class="fa-regular fa-eye"></i></button>
+                        </div>
+                        <!-- Password Strength Meter -->
+                        <div class="pw-strength" id="pwStrength" data-level="0">
+                            <div class="pw-strength-bar-track">
+                                <div class="pw-strength-bar-fill"></div>
+                            </div>
+                            <div class="pw-strength-label">
+                                <span class="pw-strength-text" id="pwStrengthText"></span>
+                                <div class="pw-strength-checks">
+                                    <span class="pw-check-dot" id="pwDot1"></span>
+                                    <span class="pw-check-dot" id="pwDot2"></span>
+                                    <span class="pw-check-dot" id="pwDot3"></span>
+                                    <span class="pw-check-dot" id="pwDot4"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="auth-form-group">
+                        <label for="registerConfirmPassword">Confirm Password</label>
+                        <div class="auth-input-wrapper">
+                            <i class="fa-solid fa-shield-halved input-icon"></i>
+                            <input type="password" class="auth-input" id="registerConfirmPassword"
+                                placeholder="Re-enter your password" autocomplete="new-password">
+                            <button type="button" class="auth-toggle-pw" id="toggleRegConfPw" tabindex="-1"><i
+                                    class="fa-regular fa-eye"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="auth-error" id="registerError"></div>
+                    <button class="auth-btn" id="registerBtn">
+                        <span>Create Account</span>
+                    </button>
+
+                    <div class="auth-switch">
+                        Already have an account? <a id="showLogin">Sign in</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- AUTH CHECK ---
+        (function () {
+            try {
+                const user = JSON.parse(localStorage.getItem('zeusUser'));
+                if (user) { window.location.href = '/public/html/main.html'; }
+            } catch (e) { }
+        })();
+
+        // --- DOM REFS ---
+        const loginModal = document.getElementById('loginModal');
+        const registerModal = document.getElementById('registerModal');
+        const showRegister = document.getElementById('showRegister');
+        const showLogin = document.getElementById('showLogin');
+        const loginBtn = document.getElementById('loginBtn');
+        const registerBtn = document.getElementById('registerBtn');
+        const loginError = document.getElementById('loginError');
+        const registerError = document.getElementById('registerError');
+
+        // --- CARD SWITCHING ---
+        function switchCard(hideEl, showEl) {
+            hideEl.style.animation = 'cardExit 0.25s ease forwards';
+            setTimeout(() => {
+                hideEl.style.display = 'none';
+                hideEl.style.animation = '';
+                showEl.style.display = 'block';
+                showEl.style.animation = 'cardEntrance 0.4s cubic-bezier(0.16,1,0.3,1) both';
+            }, 220);
+        }
+
+        // Add exit keyframe dynamically
+        const exitKf = document.createElement('style');
+        exitKf.textContent = `@keyframes cardExit { to { opacity:0; transform: translateY(12px) scale(0.97); } }`;
+        document.head.appendChild(exitKf);
+
+        showRegister.addEventListener('click', () => {
+            loginError.style.display = 'none';
+            switchCard(loginModal, registerModal);
+        });
+
+        showLogin.addEventListener('click', () => {
+            registerError.style.display = 'none';
+            switchCard(registerModal, loginModal);
+        });
+
+        // --- TOGGLE PASSWORD VISIBILITY ---
+        function setupToggle(btnId, inputId) {
+            const btn = document.getElementById(btnId);
+            const inp = document.getElementById(inputId);
+            if (!btn || !inp) return;
+            btn.addEventListener('click', () => {
+                const isPassword = inp.type === 'password';
+                inp.type = isPassword ? 'text' : 'password';
+                btn.innerHTML = isPassword
+                    ? '<i class="fa-regular fa-eye-slash"></i>'
+                    : '<i class="fa-regular fa-eye"></i>';
+            });
+        }
+        setupToggle('toggleLoginPw', 'loginPassword');
+        setupToggle('toggleRegPw', 'registerPassword');
+        setupToggle('toggleRegConfPw', 'registerConfirmPassword');
+
+        // --- PASSWORD STRENGTH METER ---
+        const regPwInput = document.getElementById('registerPassword');
+        const pwStrength = document.getElementById('pwStrength');
+        const pwStrengthText = document.getElementById('pwStrengthText');
+        const dots = [document.getElementById('pwDot1'), document.getElementById('pwDot2'), document.getElementById('pwDot3'), document.getElementById('pwDot4')];
+
+        const strengthLabels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+
+        function evaluateStrength(pw) {
+            if (!pw) return 0;
+            let score = 0;
+            if (pw.length >= 6) score++;
+            if (pw.length >= 10) score++;
+            if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+            if (/[^A-Za-z0-9]/.test(pw)) score++;
+            return Math.min(score, 4);
+        }
+
+        regPwInput.addEventListener('input', () => {
+            const level = evaluateStrength(regPwInput.value);
+            pwStrength.setAttribute('data-level', level);
+            pwStrengthText.textContent = regPwInput.value ? strengthLabels[level] : '';
+            dots.forEach((d, i) => {
+                d.classList.toggle('active', i < level);
+            });
+        });
+
+        // --- ENTER KEY SUPPORT ---
+        document.getElementById('loginPassword').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') loginBtn.click();
+        });
+        document.getElementById('loginEmail').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') loginBtn.click();
+        });
+        document.getElementById('registerConfirmPassword').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') registerBtn.click();
+        });
+
+        // --- LOGIN ---
+        loginBtn.addEventListener('click', async () => {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                loginError.textContent = 'Please fill in all fields';
+                loginError.style.display = 'block';
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:8px"></i> Signing in...';
+            try {
+                const res = await fetch('http://127.0.0.1:8000/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    loginBtn.classList.add('success');
+                    loginBtn.innerHTML = '<i class="fa-solid fa-check" style="margin-right:8px"></i> Success!';
+                    localStorage.setItem('zeusUser', JSON.stringify(data));
+                    setTimeout(() => { window.location.href = '/public/html/main.html'; }, 600);
+                    return;
+                } else {
+                    loginError.textContent = data.detail || 'Login failed';
+                    loginError.style.display = 'block';
+                }
+            } catch (err) {
+                loginError.textContent = 'Server error. Please try again.';
+                loginError.style.display = 'block';
+            }
+            loginBtn.innerHTML = '<span>Sign In</span>';
+            loginBtn.disabled = false;
+        });
+
+        // --- REGISTER ---
+        registerBtn.addEventListener('click', async () => {
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerConfirmPassword').value;
+
+            if (!email || !password || !confirmPassword) {
+                registerError.textContent = 'Please fill in all fields';
+                registerError.style.display = 'block';
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                registerError.textContent = 'Passwords do not match';
+                registerError.style.display = 'block';
+                return;
+            }
+
+            registerBtn.disabled = true;
+            registerBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:8px"></i> Creating account...';
+            try {
+                const res = await fetch('http://127.0.0.1:8000/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, confirmPassword })
+                });
+                let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    registerError.textContent = 'Server returned an invalid response';
+                    registerError.style.display = 'block';
+                    registerBtn.innerHTML = '<span>Create Account</span>';
+                    registerBtn.disabled = false;
+                    return;
+                }
+                if (res.ok) {
+                    registerBtn.classList.add('success');
+                    registerBtn.innerHTML = '<i class="fa-solid fa-check" style="margin-right:8px"></i> Account created!';
+                    localStorage.setItem('zeusUser', JSON.stringify(data));
+                    setTimeout(() => { window.location.href = '/public/html/main.html'; }, 600);
+                    return;
+                } else {
+                    registerError.textContent = data.detail || 'Registration failed';
+                    registerError.style.display = 'block';
+                }
+            } catch (err) {
+                registerError.textContent = 'Server error. Please try again.';
+                registerError.style.display = 'block';
+            }
+            registerBtn.innerHTML = '<span>Create Account</span>';
+            registerBtn.disabled = false;
+        });
+
+        // --- FLOATING PARTICLES (canvas) ---
+        (function () {
+            const canvas = document.getElementById('authParticles');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            let w, h;
+
+            function resize() {
+                w = canvas.width = window.innerWidth;
+                h = canvas.height = window.innerHeight;
+            }
+            resize();
+            window.addEventListener('resize', resize);
+
+            class Particle {
+                constructor() { this.reset(); }
+                reset() {
+                    this.x = Math.random() * w;
+                    this.y = Math.random() * h;
+                    this.r = Math.random() * 2 + 0.5;
+                    this.vx = (Math.random() - 0.5) * 0.3;
+                    this.vy = (Math.random() - 0.5) * 0.3;
+                    this.alpha = Math.random() * 0.3 + 0.08;
+                }
+                update() {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    if (this.x < 0 || this.x > w || this.y < 0 || this.y > h) this.reset();
+                }
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+                    ctx.fill();
+                }
+            }
+
+            for (let i = 0; i < 60; i++) particles.push(new Particle());
+
+            function connectParticles() {
+                for (let a = 0; a < particles.length; a++) {
+                    for (let b = a + 1; b < particles.length; b++) {
+                        const dx = particles[a].x - particles[b].x;
+                        const dy = particles[a].y - particles[b].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 120) {
+                            ctx.beginPath();
+                            ctx.moveTo(particles[a].x, particles[a].y);
+                            ctx.lineTo(particles[b].x, particles[b].y);
+                            ctx.strokeStyle = `rgba(255, 255, 255, ${0.06 * (1 - dist / 120)})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, w, h);
+                particles.forEach(p => { p.update(); p.draw(); });
+                connectParticles();
+                requestAnimationFrame(animate);
+            }
+            animate();
+        })();
+    </script>
+</body>
+
+</html>

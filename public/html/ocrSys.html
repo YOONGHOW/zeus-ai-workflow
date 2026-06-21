@@ -1,0 +1,43 @@
+<div class="ocr-container">
+  <div class="ocr-sidebar">
+    <div id="extract-panel" class="sidebar-content active">
+      <div class="ocr-header">
+        <h2>Configuration</h2>
+        <p>Select fields to extract from the document.</p>
+      </div>
+
+      <div id="ocrStatusMessage" class="ocr-status-message">
+        Upload and process a document to begin extraction.
+      </div>
+
+      <div class="field-checklist" id="fieldChecklist">
+        <!-- Dynamically populated based on document type -->
+      </div>
+
+      <div id="textResults" class="text-results hidden">
+        <h3>Extracted Data</h3>
+        <div id="jsonOutput" class="json-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ocr-preview">
+    <div class="canvas-wrapper">
+      <div id="ocrContainer">
+        <div class="ocr-empty-state">No document loaded</div>
+      </div>
+    </div>
+
+    <div class="zoom-controls">
+      <button id="prevPageBtn" style="display: none;"><i class="fa-solid fa-chevron-left"></i></button>
+      <span id="pageIndicator" style="display: none; margin: 0 10px;">1 / 1</span>
+      <button id="nextPageBtn" style="display: none;"><i class="fa-solid fa-chevron-right"></i></button>
+      
+      <div id="paginationSeparator" style="display: none; width: 1px; height: 16px; background: rgba(255,255,255,0.2); margin: 0 8px;"></div>
+
+      <button id="zoomOut">-</button>
+      <span id="zoomLevel">100%</span>
+      <button id="zoomIn">+</button>
+    </div>
+  </div>
+</div>

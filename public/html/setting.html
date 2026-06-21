@@ -1,0 +1,403 @@
+<link rel="stylesheet" href="/css/setting.css">
+
+<div id="zeusSettingsModal" class="sm-overlay">
+    <div class="sm-dialog">
+        <!-- LEFT SIDEBAR -->
+        <nav class="sm-sidebar">
+            <div class="sm-sidebar-brand">
+                <span class="sm-brand-text">Settings</span>
+            </div>
+            <ul class="sm-nav-list">
+                <li>
+                    <button class="sm-nav-item active" data-tab="settings">
+                        <span class="sm-nav-icon"><i class="fa-solid fa-sliders"></i></span>
+                        <span class="sm-nav-label">Preferences</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="sm-nav-item" data-tab="usage">
+                        <span class="sm-nav-icon"><i class="fa-solid fa-chart-area"></i></span>
+                        <span class="sm-nav-label">System Usage</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="sm-nav-item" data-tab="about">
+                        <span class="sm-nav-icon"><i class="fa-solid fa-circle-info"></i></span>
+                        <span class="sm-nav-label">About Us</span>
+                    </button>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- RIGHT CONTENT PANEL -->
+        <div class="sm-panel">
+            <div class="sm-panel-topbar">
+                <div class="sm-panel-title" id="zeusSettingsTitle">Preferences</div>
+                <button class="sm-close-btn" id="closeSettingsBtn" title="Close Settings">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="sm-panel-body" id="zeusSettingsBody">
+                <!-- Dynamically populated by JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (() => {
+        const settingsModal = document.getElementById('zeusSettingsModal');
+        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+        let currentSettingsTab = 'settings';
+
+        if (closeSettingsBtn) {
+            closeSettingsBtn.addEventListener('click', () => {
+                if (settingsModal) settingsModal.classList.remove('active');
+            });
+        }
+
+        if (settingsModal) {
+            settingsModal.addEventListener('click', (e) => {
+                if (e.target === settingsModal) {
+                    settingsModal.classList.remove('active');
+                }
+            });
+        }
+
+        // Bind tab switching events
+        document.querySelectorAll('.sm-nav-item').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                currentSettingsTab = e.currentTarget.dataset.tab;
+                renderSettingsTab();
+            });
+        });
+
+        async function renderSettingsTab() {
+            const modalBody = document.getElementById('zeusSettingsBody');
+            if (!modalBody) return;
+            const user = JSON.parse(localStorage.getItem('zeusUser'));
+            if (!user) return;
+
+            // Update active nav button
+            document.querySelectorAll('.sm-nav-item').forEach(btn => {
+                if (btn.dataset.tab === currentSettingsTab) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Update panel title
+            const panelTitle = document.getElementById('zeusSettingsTitle');
+            const titleMap = { settings: 'Preferences', usage: 'System Usage', about: 'About Zeus AI' };
+            if (panelTitle) panelTitle.textContent = titleMap[currentSettingsTab] || 'Settings';
+
+            // ─── PREFERENCES TAB ───────────────────────────────────────────
+            if (currentSettingsTab === 'settings') {
+                modalBody.innerHTML = '<div style="text-align:center;padding:40px;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:#6366f1;"></i></div>';
+                try {
+                    const res = await fetch(`http://127.0.0.1:8000/user/settings?userid=${user.userid}`);
+                    let data = { google_connected: 0, email_enabled: 0, calendar_enabled: 0 };
+                    if (res.ok) data = await res.json();
+
+                    const connectedBadge = data.google_connected
+                        ? `<span class="sm-status-badge connected"><i class="fa-solid fa-check"></i> Connected</span>`
+                        : `<span class="sm-status-badge disconnected"><i class="fa-solid fa-xmark"></i> Not Connected</span>`;
+
+                    modalBody.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+                            <p class="sm-section-title" style="margin:0;">Integrations</p>
+                            <i id="settingsLoadingSpinner" class="fa-solid fa-circle-notch fa-spin" style="color:#6366f1; font-size:12px; display:none;"></i>
+                        </div>
+                        <div class="sm-card">
+                            <div class="sm-card-header">
+                                <h4>Google Account</h4>
+                                <p>Connect your Google account to enable Gmail and Google Calendar.</p>
+                            </div>
+
+                            <!-- Connect row -->
+                            <div class="sm-integration-row">
+                                <div class="sm-integration-info">
+                                    <div class="sm-integration-icon google">
+                                        <i class="fa-brands fa-google"></i>
+                                    </div>
+                                    <div class="sm-integration-text">
+                                        <div class="sm-integration-name">Google Account</div>
+                                        <div id="googleConnectedStatus">${connectedBadge}</div>
+                                    </div>
+                                </div>
+                                <button id="connectGoogleBtn" class="sm-connect-btn ${data.google_connected ? 'disconnect' : 'connect'}">
+                                    ${data.google_connected ? '<i class="fa-solid fa-link-slash"></i> Disconnect' : '<i class="fa-brands fa-google"></i> Connect Account'}
+                                </button>
+                            </div>
+
+                            <!-- Email toggle row -->
+                            <div class="sm-integration-row">
+                                <div class="sm-integration-info">
+                                    <div class="sm-integration-icon email">
+                                        <i class="fa-solid fa-envelope"></i>
+                                    </div>
+                                    <div class="sm-integration-text">
+                                        <div class="sm-integration-name">Email Integration</div>
+                                        <div class="sm-integration-desc">Allow workflows to send emails via your Gmail</div>
+                                    </div>
+                                </div>
+                                <label class="sm-toggle-wrap">
+                                    <input type="checkbox" id="emailToggle" ${data.email_enabled ? 'checked' : ''} ${!data.google_connected ? 'disabled' : ''}>
+                                    <div class="sm-toggle-track"><div class="sm-toggle-thumb"></div></div>
+                                </label>
+                            </div>
+
+                            <!-- Calendar toggle row -->
+                            <div class="sm-integration-row">
+                                <div class="sm-integration-info">
+                                    <div class="sm-integration-icon calendar">
+                                        <i class="fa-solid fa-calendar-days"></i>
+                                    </div>
+                                    <div class="sm-integration-text">
+                                        <div class="sm-integration-name">Calendar Integration</div>
+                                        <div class="sm-integration-desc">Allow workflows to insert events to your Google Calendar</div>
+                                    </div>
+                                </div>
+                                <label class="sm-toggle-wrap">
+                                    <input type="checkbox" id="calendarToggle" ${data.calendar_enabled ? 'checked' : ''} ${!data.google_connected ? 'disabled' : ''}>
+                                    <div class="sm-toggle-track"><div class="sm-toggle-thumb"></div></div>
+                                </label>
+                            </div>
+                        </div>
+                    `;
+
+                    const updateUI = (state) => {
+                        const badgeContainer = document.getElementById('googleConnectedStatus');
+                        if (badgeContainer) {
+                            badgeContainer.innerHTML = state.google_connected
+                                ? `<span class="sm-status-badge connected"><i class="fa-solid fa-check"></i> Connected</span>`
+                                : `<span class="sm-status-badge disconnected"><i class="fa-solid fa-xmark"></i> Not Connected</span>`;
+                        }
+
+                        const connectBtn = document.getElementById('connectGoogleBtn');
+                        if (connectBtn) {
+                            if (state.google_connected) {
+                                connectBtn.className = 'sm-connect-btn disconnect';
+                                connectBtn.innerHTML = '<i class="fa-solid fa-link-slash"></i> Disconnect';
+                            } else {
+                                connectBtn.className = 'sm-connect-btn connect';
+                                connectBtn.innerHTML = '<i class="fa-brands fa-google"></i> Connect Account';
+                            }
+                        }
+
+                        const emailToggle = document.getElementById('emailToggle');
+                        if (emailToggle) {
+                            emailToggle.checked = !!state.email_enabled;
+                            emailToggle.disabled = !state.google_connected;
+                        }
+
+                        const calendarToggle = document.getElementById('calendarToggle');
+                        if (calendarToggle) {
+                            calendarToggle.checked = !!state.calendar_enabled;
+                            calendarToggle.disabled = !state.google_connected;
+                        }
+                    };
+
+                    const updateSettings = async (updates) => {
+                        const spinner = document.getElementById('settingsLoadingSpinner');
+                        if (spinner) spinner.style.display = 'inline-block';
+
+                        const newData = { ...data, userid: user.userid, ...updates };
+                        try {
+                            const response = await fetch('http://127.0.0.1:8000/user/settings', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(newData)
+                            });
+                            if (response.ok) {
+                                data = newData;
+                                updateUI(data);
+                            } else {
+                                throw new Error("Failed to update preferences");
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            updateUI(data);
+                        } finally {
+                            if (spinner) spinner.style.display = 'none';
+                        }
+                    };
+
+                    document.getElementById('connectGoogleBtn')?.addEventListener('click', () => {
+                        if (data.google_connected) {
+                            // Disconnect
+                            updateSettings({ google_connected: 0, email_enabled: 0, calendar_enabled: 0 });
+                        } else {
+                            // Connect
+                            window.location.href = `http://127.0.0.1:8000/auth/google/login?userid=${user.userid}&frontend_url=${window.location.origin}`;
+                        }
+                    });
+                    document.getElementById('emailToggle')?.addEventListener('change', e => {
+                        updateSettings({ email_enabled: e.target.checked ? 1 : 0 });
+                    });
+                    document.getElementById('calendarToggle')?.addEventListener('change', e => {
+                        updateSettings({ calendar_enabled: e.target.checked ? 1 : 0 });
+                    });
+
+                } catch (err) {
+                    modalBody.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;"><i class="fa-solid fa-triangle-exclamation fa-2x" style="margin-bottom:12px;display:block;"></i><p>Failed to load preferences.</p></div>';
+                }
+
+                // ─── SYSTEM USAGE TAB ──────────────────────────────────────────
+            } else if (currentSettingsTab === 'usage') {
+                modalBody.innerHTML = '<div style="text-align:center;padding:40px;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:#6366f1;"></i></div>';
+                try {
+                    if (user.role === 'admin') {
+                        const res = await fetch('http://127.0.0.1:8000/admin/token_usage');
+                        if (!res.ok) throw new Error();
+                        const data = await res.json();
+                        const totalTokens = data.reduce((s, u) => s + (u.token_usage || 0), 0);
+                        const totalUsers = data.length;
+                        const avgUsage = totalUsers > 0 ? Math.round(totalTokens / totalUsers) : 0;
+                        const costMyr = totalTokens * 0.0000003 * 4.70;
+                        const fmt = n => new Intl.NumberFormat().format(n);
+                        const fmtCost = new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(costMyr);
+
+                        let rowsHtml = '';
+                        data.forEach(u => {
+                            const fTok = fmt(u.token_usage);
+                            const isAdm = u.role === 'admin';
+                            const badgeBg = isAdm ? 'rgba(239,68,68,0.12)' : 'rgba(59,130,246,0.12)';
+                            const badgeColor = isAdm ? '#ef4444' : '#3b82f6';
+                            const badgeBdr = isAdm ? 'rgba(239,68,68,0.25)' : 'rgba(59,130,246,0.25)';
+                            rowsHtml += `
+                                <tr>
+                                    <td style="color:rgba(255,255,255,0.3);font-family:monospace;">${u.userid}</td>
+                                    <td style="font-weight:500;">${u.email}</td>
+                                    <td>
+                                        <span style="padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:${badgeBg};color:${badgeColor};border:1px solid ${badgeBdr};">${u.role}</span>
+                                    </td>
+                                    <td style="text-align:right;font-family:monospace;font-weight:700;color:#10b981;">${fTok}</td>
+                                </tr>`;
+                        });
+
+                        modalBody.innerHTML = `
+                            <p class="sm-section-title">Overview</p>
+                            <div class="sm-stats-grid">
+                                <div class="sm-stat-card">
+                                    <div class="sm-stat-icon" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);color:#10b981;"><i class="fa-solid fa-bolt"></i></div>
+                                    <div><div class="sm-stat-label">Total Tokens</div><div class="sm-stat-value" style="color:#10b981;">${fmt(totalTokens)}</div></div>
+                                </div>
+                                <div class="sm-stat-card">
+                                    <div class="sm-stat-icon" style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);color:#3b82f6;"><i class="fa-solid fa-users"></i></div>
+                                    <div><div class="sm-stat-label">Active Users</div><div class="sm-stat-value">${totalUsers}</div></div>
+                                </div>
+                                <div class="sm-stat-card">
+                                    <div class="sm-stat-icon" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);color:#f59e0b;"><i class="fa-solid fa-chart-pie"></i></div>
+                                    <div><div class="sm-stat-label">Avg / User</div><div class="sm-stat-value" style="color:#f59e0b;">${fmt(avgUsage)}</div></div>
+                                </div>
+                                <div class="sm-stat-card">
+                                    <div class="sm-stat-icon" style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);color:#8b5cf6;"><i class="fa-solid fa-coins"></i></div>
+                                    <div><div class="sm-stat-label">Est. Spending</div><div class="sm-stat-value" style="color:#8b5cf6;">${fmtCost}</div></div>
+                                </div>
+                            </div>
+
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                                <p class="sm-section-title" style="margin:0;">User Consumption</p>
+                                <button id="refreshUsageBtn" class="sm-refresh-btn"><i class="fa-solid fa-rotate-right" style="font-size:10px;"></i> Refresh</button>
+                            </div>
+                            <div class="sm-table-wrap">
+                                <table class="sm-table">
+                                    <thead><tr>
+                                        <th>ID</th><th>Email</th><th>Role</th><th style="text-align:right;">Tokens</th>
+                                    </tr></thead>
+                                    <tbody>${rowsHtml}</tbody>
+                                </table>
+                            </div>
+                        `;
+                        document.getElementById('refreshUsageBtn')?.addEventListener('click', renderSettingsTab);
+
+                    } else {
+                        const res = await fetch(`http://127.0.0.1:8000/user/token_usage?userid=${user.userid}`);
+                        let tokenUsage = 0, tokenLimit = 300000, tokenPercentage = 0, daysLeft = 30;
+                        if (res.ok) {
+                            const d = await res.json();
+                            tokenUsage = d.token_usage || 0;
+                            tokenLimit = d.limit || 300000;
+                            tokenPercentage = d.percentage || 0;
+                            daysLeft = d.days_left || 0;
+                        }
+                        const pct = Math.min(tokenPercentage, 100);
+                        const fmtTok = new Intl.NumberFormat().format(tokenUsage);
+                        const fmtLim = new Intl.NumberFormat().format(tokenLimit);
+                        const barColor = pct > 90 ? '#ef4444' : pct > 75 ? '#f59e0b' : '#10b981';
+                        modalBody.innerHTML = `
+                            <p class="sm-section-title">Your Usage</p>
+                            <div class="sm-token-card">
+                                <div style="display:flex;align-items:center;justify-content:space-between;">
+                                    <div style="display:flex;align-items:center;gap:10px;">
+                                        <div style="width:32px;height:32px;border-radius:9px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;color:#10b981;"><i class="fa-solid fa-bolt"></i></div>
+                                        <div class="sm-stat-label">Monthly Token Usage</div>
+                                    </div>
+                                    <span style="font-size:11px;color:rgba(255,255,255,0.35);"><i class="fa-regular fa-clock" style="margin-right:4px;"></i>${daysLeft} days left</span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+                                    <div style="font-size:22px;font-weight:700;font-family:monospace;color:#fff;">${fmtTok} <span style="font-size:12px;color:rgba(255,255,255,0.3);font-weight:400;">/ ${fmtLim}</span></div>
+                                    <div style="font-size:13px;font-weight:700;color:${barColor};">${pct.toFixed(1)}%</div>
+                                </div>
+                                <div class="sm-progress-bar-track">
+                                    <div class="sm-progress-bar-fill" style="width:${pct}%;background:${barColor};"></div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } catch (err) {
+                    modalBody.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;"><p>Failed to load usage data.</p></div>';
+                }
+
+                // ─── ABOUT TAB ─────────────────────────────────────────────────
+            } else if (currentSettingsTab === 'about') {
+                modalBody.innerHTML = `
+                    <p class="sm-section-title">Core Capabilities</p>
+                    <div class="sm-about-grid">
+                        <div class="sm-about-card">
+                            <div class="sm-about-card-icon" style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);color:#3b82f6;"><i class="fa-solid fa-comments"></i></div>
+                            <div><div class="sm-about-card-title">Conversational AI</div><div class="sm-about-card-desc">General discussion, writing assistance, programming support and complex task planning.</div></div>
+                        </div>
+                        <div class="sm-about-card">
+                            <div class="sm-about-card-icon" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);color:#10b981;"><i class="fa-solid fa-database"></i></div>
+                            <div><div class="sm-about-card-title">Database Operations</div><div class="sm-about-card-desc">Connect to MySQL, Postgres, SQLite, SQL Server, and MongoDB to query and analyze data.</div></div>
+                        </div>
+                        <div class="sm-about-card">
+                            <div class="sm-about-card-icon" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);color:#f59e0b;"><i class="fa-solid fa-file-invoice"></i></div>
+                            <div><div class="sm-about-card-title">Document OCR</div><div class="sm-about-card-desc">Upload PDFs, images and Word files to visually select and extract structured fields.</div></div>
+                        </div>
+                        <div class="sm-about-card">
+                            <div class="sm-about-card-icon" style="background:rgba(236,72,153,0.1);border:1px solid rgba(236,72,153,0.2);color:#ec4899;"><i class="fa-solid fa-plug"></i></div>
+                            <div><div class="sm-about-card-title">REST API Execution</div><div class="sm-about-card-desc">Call REST endpoints dynamically to retrieve real-time data or trigger external actions.</div></div>
+                        </div>
+                        <div class="sm-about-card" style="grid-column:span 2;">
+                            <div class="sm-about-card-icon" style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);color:#8b5cf6;"><i class="fa-solid fa-sitemap"></i></div>
+                            <div><div class="sm-about-card-title">Workflow Automation</div><div class="sm-about-card-desc">Design and orchestrate visual workflows using canvas nodes — Start, End, Database, Gmail, Calendar, APIs — with full undo/redo history.</div></div>
+                        </div>
+                    </div>
+
+                    <p class="sm-section-title" style="margin-bottom:12px;">Built-in Tools</p>
+                    <div class="sm-tags-wrap">
+                        <span class="sm-tag"><i class="fa-solid fa-magnifying-glass"></i> Schema Discoverer</span>
+                        <span class="sm-tag"><i class="fa-solid fa-terminal"></i> SQL Executor</span>
+                        <span class="sm-tag"><i class="fa-solid fa-wand-magic-sparkles"></i> Field Extractor</span>
+                        <span class="sm-tag"><i class="fa-solid fa-link"></i> REST API Call</span>
+                        <span class="sm-tag"><i class="fa-solid fa-folder-open"></i> Knowledge Base RAG</span>
+                        <span class="sm-tag"><i class="fa-solid fa-envelope"></i> Email Assistant</span>
+                        <span class="sm-tag"><i class="fa-solid fa-calendar-days"></i> Calendar Scheduler</span>
+                        <span class="sm-tag"><i class="fa-solid fa-globe"></i> Web Search</span>
+                        <span class="sm-tag"><i class="fa-solid fa-chart-line"></i> Chart Generator</span>
+                        <span class="sm-tag"><i class="fa-solid fa-sitemap"></i> Workflow Designer</span>
+                        <span class="sm-tag"><i class="fa-solid fa-play"></i> Workflow Engine</span>
+                        <span class="sm-tag"><i class="fa-solid fa-clock-rotate-left"></i> Run History</span>
+                    </div>
+                `;
+            }
+        }
+
+        // Initial render
+        renderSettingsTab();
+    })();
+</script>
