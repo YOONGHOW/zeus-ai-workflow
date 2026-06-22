@@ -11,8 +11,10 @@ ocr = PaddleOCR(
     use_doc_unwarping=False,
     use_textline_orientation=False,
     lang="en",
-    ocr_version="PP-OCRv4"
+    ocr_version="PP-OCRv4",
+    enable_mkldnn=False
 )
+
 
 def process_paddle_ocr(file_bytes: bytes) -> dict:
     is_pdf = file_bytes[:4] == b'%PDF'
