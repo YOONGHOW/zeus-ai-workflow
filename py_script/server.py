@@ -52,9 +52,10 @@ from dbconfig.db import (
     ChatSession,
     get_db,
     save_to_history,
+    log_error_to_db,
 )
 import hashlib
-
+import traceback
 
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -627,6 +628,11 @@ async def process_document_background(file_id: str):
                         raw_text_parts.append(res.get("raw_text", ""))
                 except Exception as e:
                     print(f"[Background Task] PyMuPDF error: {e}")
+                    log_error_to_db(
+                        component="process_document_background (PyMuPDF)",
+                        error_message=str(e),
+                        stack_trace=traceback.format_exc()
+                    )
                     res = await loop.run_in_executor(None, process_paddle_ocr, file_bytes)
                     ocr_details = res.get("ocr_details", [])
                     raw_text_parts.append(res.get("raw_text", ""))
@@ -662,6 +668,11 @@ async def process_document_background(file_id: str):
                             }
             except Exception as e:
                 print(f"[Background Task] LLM extraction error: {e}")
+                log_error_to_db(
+                    component="process_document_background (LLM)",
+                    error_message=str(e),
+                    stack_trace=traceback.format_exc()
+                )
 
         record.ocr_text = raw_text
         record.ocr_details = ocr_details
@@ -672,6 +683,11 @@ async def process_document_background(file_id: str):
     except Exception as e:
         db.rollback()
         print(f"[Background Task] Error processing document {file_id}: {e}")
+        log_error_to_db(
+            component="process_document_background",
+            error_message=str(e),
+            stack_trace=traceback.format_exc()
+        )
     finally:
         db.close()
 
