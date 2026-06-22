@@ -1403,5 +1403,5 @@ if __name__ == "__main__":
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
         
-    port = int(os.getenv("PORT", 8000))
+    port = int(os.getenv("PORT", 8080))
     uvicorn.run(app, host="0.0.0.0", port=port)
