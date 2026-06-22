@@ -308,6 +308,7 @@
 
     <script type="module" src="/src/main.ts"></script>
     <script>
+        const BASE_URL = "%VITE_API_BASE_URL%";
         // --- GLOBAL VARIABLES ---
         const sidebar = document.getElementById('sidebar');
         const toggleBtn = document.getElementById('sidebarToggle');
@@ -562,7 +563,7 @@
             const projectList = document.getElementById('zeusProjectHistoryList');
             if (!chatList && !projectList) return;
             try {
-                const res = await fetch(`http://127.0.0.1:8000/zeus/sessions?userid=${user.userid}`);
+                const res = await fetch(`${BASE_URL}/zeus/sessions?userid=${user.userid}`);
                 if (!res.ok) return;
                 const data = await res.json();
                 if (chatList) chatList.innerHTML = '';
@@ -589,7 +590,7 @@
                         const newTitle = await window.showZeusPrompt(`Rename this ${s.type || 'chat'} session:`, s.title || 'Untitled');
                         if (newTitle && newTitle !== s.title) {
                             try {
-                                const response = await fetch(`http://127.0.0.1:8000/zeus/sessions/${s.id}`, {
+                                const response = await fetch(`${BASE_URL}/zeus/sessions/${s.id}`, {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ title: newTitle })
@@ -613,7 +614,7 @@
                     delBtn.onclick = async (e) => {
                         e.stopPropagation();
                         if (!await window.showZeusConfirm(`Are you sure you want to delete the ${s.type || 'chat'} session "${s.title || 'Untitled'}"?`)) return;
-                        await fetch(`http://127.0.0.1:8000/zeus/sessions/${s.id}`, { method: 'DELETE' });
+                        await fetch(`${BASE_URL}/zeus/sessions/${s.id}`, { method: 'DELETE' });
                         loadSidebarSessions();
                     };
 
@@ -731,7 +732,7 @@
         async function renderDbConnList() {
             if (!dbConnList) return;
             try {
-                const res = await fetch('http://127.0.0.1:8000/api/db_connections');
+                const res = await fetch(`${BASE_URL}/api/db_connections`);
                 const conns = await res.json();
                 dbConnList.innerHTML = '';
                 if (conns.length === 0) {
@@ -774,7 +775,7 @@
                     item.querySelector('.db-conn-del').onclick = async (e) => {
                         e.stopPropagation();
                         if (!await window.showZeusConfirm(`Are you sure you want to delete database connection "${c.name}"?`)) return;
-                        await fetch(`http://127.0.0.1:8000/api/db_connections/${c.id}`, { method: 'DELETE' });
+                        await fetch(`${BASE_URL}/api/db_connections/${c.id}`, { method: 'DELETE' });
                         renderDbConnList();
                     };
                     dbConnList.appendChild(item);
@@ -804,7 +805,7 @@
                     password: document.getElementById('dbPass').value,
                 };
                 try {
-                    const res = await fetch('http://127.0.0.1:8000/api/db_connections/test', {
+                    const res = await fetch(`${BASE_URL}/api/db_connections/test`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
@@ -836,8 +837,8 @@
                     description: document.getElementById('dbDesc').value,
                 };
                 const url = dbEditingId
-                    ? `http://127.0.0.1:8000/api/db_connections/${dbEditingId}`
-                    : 'http://127.0.0.1:8000/api/db_connections';
+                    ? `${BASE_URL}/api/db_connections/${dbEditingId}`
+                    : `${BASE_URL}/api/db_connections`;
                 const method = dbEditingId ? 'PUT' : 'POST';
                 try {
                     const res = await fetch(url, {
@@ -890,7 +891,7 @@
                 dbConfigStatus.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connecting to database and generating description...';
 
                 try {
-                    const res = await fetch('http://127.0.0.1:8000/api/db_connections/generate_description', {
+                    const res = await fetch(`${BASE_URL}/api/db_connections/generate_description`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -1024,21 +1025,21 @@
                     const res = await fetch('/html/setting.html?v=' + Date.now());
                     if (!res.ok) throw new Error("Failed to load settings");
                     const html = await res.text();
-                    
+
                     const temp = document.createElement('div');
                     temp.innerHTML = html;
-                    
+
                     // Extract script
                     const scriptTag = temp.querySelector('script');
                     if (scriptTag) {
                         scriptTag.remove();
                     }
-                    
+
                     // Append elements
                     while (temp.firstChild) {
                         document.body.appendChild(temp.firstChild);
                     }
-                    
+
                     // Execute script
                     if (scriptTag) {
                         const script = document.createElement('script');
@@ -1085,4 +1086,5 @@
         });
     </script>
 </body>
+
 </html>

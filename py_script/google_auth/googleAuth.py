@@ -66,9 +66,9 @@ async def google_callback(code: str = None, state: str = None, error: str = None
                 pass
 
     if error:
-        return RedirectResponse(url=f"{frontend_url}/public/html/main.html?error=" + urllib.parse.quote(error))
+        return RedirectResponse(url=f"{frontend_url}/src/public/html/main.html?error=" + urllib.parse.quote(error))
     if not code or not userid:
-        return RedirectResponse(url=f"{frontend_url}/public/html/main.html?error=Invalid+callback+parameters")
+        return RedirectResponse(url=f"{frontend_url}/src/public/html/main.html?error=Invalid+callback+parameters")
         
     try:
         config = get_google_oauth_config()
@@ -110,13 +110,13 @@ async def google_callback(code: str = None, state: str = None, error: str = None
             ).first()
             if existing_conn:
                 return RedirectResponse(
-                    url=f"{frontend_url}/public/html/main.html?error=" + 
+                    url=f"{frontend_url}/src/public/html/main.html?error=" + 
                     urllib.parse.quote(f"This Google account ({user_email}) is already connected to another user.")
                 )
 
         user = db.query(UserTable).filter(UserTable.userid == userid).first()
         if not user:
-            return RedirectResponse(url=f"{frontend_url}/public/html/main.html?error=User+not+found")
+            return RedirectResponse(url=f"{frontend_url}/src/public/html/main.html?error=User+not+found")
             
         user.google_connected = 1
         if refresh_token:
@@ -125,7 +125,7 @@ async def google_callback(code: str = None, state: str = None, error: str = None
             user.google_email = user_email
         db.commit()
         
-        return RedirectResponse(url=f"{frontend_url}/public/html/main.html?oauth=success")
+        return RedirectResponse(url=f"{frontend_url}/src/public/html/main.html?oauth=success")
         
     except Exception as e:
-        return RedirectResponse(url=f"{frontend_url}/public/html/main.html?error={urllib.parse.quote(str(e))}")
+        return RedirectResponse(url=f"{frontend_url}/src/public/html/main.html?error={urllib.parse.quote(str(e))}")

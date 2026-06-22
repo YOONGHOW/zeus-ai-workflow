@@ -50,7 +50,7 @@ const TOOL_DEFS: Record<string, { label: string; icon: string; color: string }> 
 const FLOW_NODES = new Set(['start', 'end']);
 
 // ── Storage helpers ────────────────────────────────────────────
-const BASE_URL = 'http://127.0.0.1:8000';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 function getStorageKey(): string {
     try {
@@ -409,10 +409,10 @@ function renderTaskList() {
             const badgesDiv = document.createElement('div');
             badgesDiv.className = 'ta-tools-badges';
             const uniqueTypes = [...new Set(task.nodes.map(n => n.type))].filter(t => !FLOW_NODES.has(t));
-            
+
             const maxVisible = 4;
             const typesToRender = uniqueTypes.slice(0, maxVisible);
-            
+
             typesToRender.forEach(t => {
                 const def = TOOL_DEFS[t];
                 if (!def) return;
@@ -421,7 +421,7 @@ function renderTaskList() {
                 badge.innerHTML = `<i class="${def.icon}"></i> ${def.label}`;
                 badgesDiv.appendChild(badge);
             });
-            
+
             if (uniqueTypes.length > maxVisible) {
                 const moreBadge = document.createElement('span');
                 moreBadge.className = 'ta-tool-badge ta-tool-badge-more';
@@ -429,7 +429,7 @@ function renderTaskList() {
                 moreBadge.title = uniqueTypes.slice(maxVisible).map(t => TOOL_DEFS[t]?.label || t).join(', ');
                 badgesDiv.appendChild(moreBadge);
             }
-            
+
             if (uniqueTypes.length === 0) {
                 badgesDiv.innerHTML = '<span style="color:rgba(255,255,255,.3)">None</span>';
             }
@@ -466,7 +466,7 @@ function renderTaskList() {
                 const ampm = hour >= 12 ? 'PM' : 'AM';
                 const hour12 = hour % 12 || 12;
                 fmtTime = `${hour12}:${m} ${ampm}`;
-                
+
                 scheduleSpan.className = 'ta-schedule-badge active';
                 scheduleSpan.innerHTML = `<i class="fa-regular fa-clock"></i> Daily at ${fmtTime}`;
             } else if (freq === 'weekly' && time) {
@@ -476,7 +476,7 @@ function renderTaskList() {
                 const ampm = hour >= 12 ? 'PM' : 'AM';
                 const hour12 = hour % 12 || 12;
                 fmtTime = `${hour12}:${m} ${ampm}`;
-                
+
                 scheduleSpan.className = 'ta-schedule-badge active';
                 scheduleSpan.innerHTML = `<i class="fa-regular fa-calendar"></i> ${day} at ${fmtTime}`;
             } else {
@@ -849,7 +849,7 @@ async function validateGoogleIntegration(): Promise<boolean> {
         try {
             const user = JSON.parse(userStr);
             userid = user.userid;
-        } catch (e) {}
+        } catch (e) { }
     }
 
     if (!userid) {

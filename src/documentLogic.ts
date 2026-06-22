@@ -5,14 +5,14 @@ let currentPdfPage = 1;
 let currentPdfScale = 1.0;
 let documentsData: any[] = [];
 
-const BASE_URL = 'http://127.0.0.1:8000';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export async function initializeDocumentsPage() {
     const docsList = document.getElementById('docsList');
     const docSearch = document.getElementById('docSearch') as HTMLInputElement;
     const docModalOverlay = document.getElementById('docModalOverlay');
     const closeModalBtn = document.getElementById('closeModalBtn');
-    
+
     const previewTitle = document.getElementById('previewTitle');
     const previewMeta = document.getElementById('previewMeta');
     const previewDownloadBtn = document.getElementById('previewDownloadBtn') as HTMLAnchorElement;
@@ -34,8 +34,8 @@ export async function initializeDocumentsPage() {
         const term = docSearch ? docSearch.value.toLowerCase().trim() : '';
         let list = [...documentsData];
         if (term) {
-            list = list.filter(d => 
-                d.filename.toLowerCase().includes(term) || 
+            list = list.filter(d =>
+                d.filename.toLowerCase().includes(term) ||
                 d.file_id.toLowerCase().includes(term)
             );
         }
@@ -82,10 +82,10 @@ export async function initializeDocumentsPage() {
             card.style.height = '280px';
             card.style.display = 'flex';
             card.style.flexDirection = 'column';
-            
+
             let thumbnailContent = '';
             let thumbnailId = `thumb-${doc.file_id}`;
-            
+
             if (isPdf) {
                 thumbnailContent = `<canvas id="${thumbnailId}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); min-width: 100%; min-height: 100%; width: auto; height: auto; display: block;"></canvas>`;
             } else if (doc.mime_type && doc.mime_type.startsWith('image/')) {
@@ -140,7 +140,7 @@ export async function initializeDocumentsPage() {
             const page = await pdf.getPage(1);
             const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
             if (!canvas) return;
-            
+
             // Render thumbnail at a fixed scale
             const viewport = page.getViewport({ scale: 1.0 });
             canvas.width = viewport.width;
@@ -153,7 +153,7 @@ export async function initializeDocumentsPage() {
     }
 
     async function openDocumentModal(doc: any) {
-        
+
         if (docModalOverlay) {
             docModalOverlay.style.display = 'flex';
         }
@@ -214,12 +214,12 @@ export async function initializeDocumentsPage() {
                 docPdfCanvas.style.display = 'block';
                 docFallbackPreview.style.display = 'none';
                 pdfZoomBar.style.display = 'flex';
-                
+
                 try {
                     const fileRes = await fetch(`${BASE_URL}/view-file/${doc.file_id}`);
                     if (!fileRes.ok) throw new Error("Failed to load PDF bytes");
                     const arrayBuffer = await fileRes.arrayBuffer();
-                    
+
                     currentPdf = await pdfjsLib.getDocument(arrayBuffer).promise;
                     currentPdfPage = 1;
                     currentPdfScale = 1.0;
@@ -260,10 +260,10 @@ export async function initializeDocumentsPage() {
         try {
             const page = await currentPdf.getPage(currentPdfPage);
             const viewport = page.getViewport({ scale: currentPdfScale });
-            
+
             docPdfCanvas.height = viewport.height;
             docPdfCanvas.width = viewport.width;
-            
+
             const context = docPdfCanvas.getContext('2d');
             await page.render({ canvasContext: context, viewport: viewport }).promise;
 

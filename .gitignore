@@ -27,3 +27,5 @@ dist-ssr
 *.pyc
 __pycache__
 .env
+oauth.json
+service_account.json
