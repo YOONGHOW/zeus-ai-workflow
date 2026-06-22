@@ -1,6 +1,6 @@
 import { showNotification } from './notification';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (window as any).BASE_URL || 'http://127.0.0.1:8080';
 let currentFile: File | null = null;
 let currentDocumentId: string | null = null;
 let currentScale = 1.0;

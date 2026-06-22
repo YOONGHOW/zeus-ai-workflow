@@ -68,7 +68,7 @@ os.environ['SSL_CERT_FILE'] = certifi.where()
 from dotenv import load_dotenv
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
 load_dotenv(dotenv_path=env_path)
-API_BASE_URL = os.getenv("VITE_API_BASE_URL")
+API_BASE_URL = os.getenv("VITE_API_BASE_URL") or "http://127.0.0.1:8080"
 
 def load_prompt(filename: str) -> str:
     try:
@@ -569,14 +569,111 @@ async def search_documents(term: str, db: Session = Depends(get_db)):
 
 # ---------------- FUNCTION DEFINITIONS FOR MCP ----------------
 async def process_document_background(file_id: str):
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        try:
-            async with client.stream("GET", f"{API_BASE_URL}/process_document/{file_id}") as response:
-                async for line in response.aiter_lines():
-                    pass # Consume stream to completion
-            print(f"[Background Task] Document {file_id} processed successfully")
-        except Exception as e:
-            print(f"[Background Task] Error processing document {file_id}: {e}")
+    from dbconfig.db import SessionLocal, FileTable
+    db = SessionLocal()
+    try:
+        record = db.query(FileTable).filter(FileTable.file_id == file_id).first()
+        if not record:
+            print(f"[Background Task] File {file_id} not found in DB")
+            return
+
+        if record.ocr_details and record.extracted_data:
+            if record.status != "ocr_completed":
+                record.status = "ocr_completed"
+                db.commit()
+            print(f"[Background Task] Document {file_id} already processed")
+            return
+
+        file_bytes = download_file_from_firebase(record.file_id) if getattr(record, 'firebase_url', None) else b""
+        if not file_bytes:
+            print(f"[Background Task] File bytes empty or download failed for {file_id}")
+            return
+
+        filename = record.filename or ""
+        mime_type = record.mime_type or ""
+        is_text_file = mime_type.startswith("text/") or filename.lower().endswith(('.txt', '.csv', '.json', '.md', '.xml', '.yaml', '.yml'))
+
+        ocr_details = []
+        raw_text_parts = []
+        
+        import asyncio
+        loop = asyncio.get_event_loop()
+
+        if is_text_file:
+            try:
+                raw_text = file_bytes.decode("utf-8", errors="ignore")
+                ocr_details = [{"res": {"rec_texts": [raw_text], "dt_polys": []}}]
+                raw_text_parts.append(raw_text)
+            except Exception:
+                res = await loop.run_in_executor(None, process_paddle_ocr, file_bytes)
+                ocr_details = res.get("ocr_details", [])
+                raw_text_parts.append(res.get("raw_text", ""))
+        else:
+            is_pdf = mime_type == "application/pdf" or filename.lower().endswith(".pdf")
+            if is_pdf:
+                try:
+                    import fitz
+                    doc = fitz.open(stream=file_bytes, filetype="pdf")
+                    total_pages = len(doc)
+                    for i in range(total_pages):
+                        page = doc.load_page(i)
+                        pix = page.get_pixmap()
+                        img_bytes = pix.tobytes("png")
+                        res = await loop.run_in_executor(None, process_paddle_ocr, img_bytes)
+                        page_details = res.get("ocr_details", [])
+                        for p in page_details:
+                            if isinstance(p, dict): p["page_num"] = i
+                        ocr_details.extend(page_details)
+                        raw_text_parts.append(res.get("raw_text", ""))
+                except Exception as e:
+                    print(f"[Background Task] PyMuPDF error: {e}")
+                    res = await loop.run_in_executor(None, process_paddle_ocr, file_bytes)
+                    ocr_details = res.get("ocr_details", [])
+                    raw_text_parts.append(res.get("raw_text", ""))
+            else:
+                res = await loop.run_in_executor(None, process_paddle_ocr, file_bytes)
+                ocr_details = res.get("ocr_details", [])
+                raw_text_parts.append(res.get("raw_text", ""))
+
+        raw_text = "\n".join(raw_text_parts)
+        extracted_data = {}
+
+        if raw_text:
+            try:
+                prompt_template = load_prompt("docAgent.md")
+                llm_prompt = prompt_template.replace("{raw_text}", raw_text)
+                llm_response = await call_llm(llm_prompt)
+                llm_fields = parse_gemini_json(llm_response) or {}
+                for key, val in llm_fields.items():
+                    if val is not None:
+                        val_str = str(val)
+                        match_info = find_bounding_box_for_value(val_str, ocr_details)
+                        if match_info:
+                            extracted_data[key] = {
+                                "value": val_str,
+                                "box": match_info["box"],
+                                "page": match_info["page"]
+                            }
+                        else:
+                            extracted_data[key] = {
+                                "value": val_str,
+                                "box": None,
+                                "page": 0
+                            }
+            except Exception as e:
+                print(f"[Background Task] LLM extraction error: {e}")
+
+        record.ocr_text = raw_text
+        record.ocr_details = ocr_details
+        record.extracted_data = extracted_data
+        record.status = "ocr_completed"
+        db.commit()
+        print(f"[Background Task] Document {file_id} processed successfully")
+    except Exception as e:
+        db.rollback()
+        print(f"[Background Task] Error processing document {file_id}: {e}")
+    finally:
+        db.close()
 
 @app.post("/upload_document")
 async def upload_document(

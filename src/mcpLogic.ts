@@ -23,7 +23,7 @@ const currentAttachedFiles = new Map<string, File>();
 
 export function initializeZeusChat() {
     console.log("Initializing Zeus Bot Logic...");
-    const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+    const BASE_URL = import.meta.env.VITE_API_BASE_URL || (window as any).BASE_URL || 'http://127.0.0.1:8080';
     let currentSessionId: string | null = null;
     let pendingSessionType: string = 'chat';
 

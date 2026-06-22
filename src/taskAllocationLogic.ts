@@ -50,7 +50,7 @@ const TOOL_DEFS: Record<string, { label: string; icon: string; color: string }> 
 const FLOW_NODES = new Set(['start', 'end']);
 
 // ── Storage helpers ────────────────────────────────────────────
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || (window as any).BASE_URL || 'http://127.0.0.1:8080';
 
 function getStorageKey(): string {
     try {
