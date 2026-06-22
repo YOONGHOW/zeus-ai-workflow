@@ -172,9 +172,11 @@ async def execute_read_document(file_id: str) -> str:
 
     async with httpx.AsyncClient(timeout=120.0) as client:
         try:
-            response = await client.get(f"{API_BASE_URL}/process_document/{file_id}")
-            if response.status_code != 200:
-                return f"Error reading document: {response.text}"
+            async with client.stream("GET", f"{API_BASE_URL}/process_document/{file_id}") as response:
+                if response.status_code != 200:
+                    return f"Error reading document: Status {response.status_code}"
+                async for line in response.aiter_lines():
+                    pass # Consume the stream to let the processing finish and save to DB
             
             db = SessionLocal()
             try:
@@ -569,8 +571,10 @@ async def search_documents(term: str, db: Session = Depends(get_db)):
 async def process_document_background(file_id: str):
     async with httpx.AsyncClient(timeout=120.0) as client:
         try:
-            response = await client.get(f"{API_BASE_URL}/process_document/{file_id}")
-            print(f"[Background Task] Document {file_id} processed, status: {response.status_code}")
+            async with client.stream("GET", f"{API_BASE_URL}/process_document/{file_id}") as response:
+                async for line in response.aiter_lines():
+                    pass # Consume stream to completion
+            print(f"[Background Task] Document {file_id} processed successfully")
         except Exception as e:
             print(f"[Background Task] Error processing document {file_id}: {e}")
 
