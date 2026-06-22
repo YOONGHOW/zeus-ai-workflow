@@ -38,15 +38,13 @@ async def insert_calendar_event_directly(event_data: dict, userid: int = None) -
             print(f"[Calendar Check] No refresh token found for userid {userid}")
             return False
             
-        # Load oauth.json for client details
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        oauth_json_path = os.path.join(base_dir, "oauth.json")
-        if not os.path.exists(oauth_json_path):
-            print("[Calendar Check] oauth.json not found")
+        # Load OAuth client details
+        try:
+            from auth.googleAuth import get_google_oauth_config
+            config = get_google_oauth_config()
+        except Exception as e:
+            print(f"[Calendar Check] Failed to get OAuth config: {e}")
             return False
-            
-        with open(oauth_json_path, "r") as f:
-            config = json.load(f)["web"]
         
         from google.oauth2.credentials import Credentials
         creds = Credentials(
