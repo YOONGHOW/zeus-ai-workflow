@@ -1,3 +1,5 @@
+import os
+os.environ["FLAGS_enable_pir_api"] = "0"
 from paddleocr import PaddleOCR
 import tempfile
 import os
