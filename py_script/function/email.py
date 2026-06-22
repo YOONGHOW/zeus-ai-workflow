@@ -28,13 +28,12 @@ async def execute_send_email(to_email: str, subject: str, body: str, is_html: bo
         if not refresh_token:
             return "Gmail credentials missing. Please reconnect your Google Account in the Settings page."
             
-        # Load oauth.json for client details
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        oauth_json_path = os.path.join(base_dir, "oauth.json")
-        if not os.path.exists(oauth_json_path):
-            return "oauth.json not found in root workspace."
-        with open(oauth_json_path, "r") as f:
-            config = json.load(f)["web"]
+        # Load OAuth client details
+        try:
+            from auth.googleAuth import get_google_oauth_config
+            config = get_google_oauth_config()
+        except Exception as e:
+            return f"Failed to get OAuth config: {str(e)}"
 
         from google.oauth2.credentials import Credentials
         from googleapiclient.discovery import build

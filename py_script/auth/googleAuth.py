@@ -16,10 +16,22 @@ FRONTEND_URL = os.getenv("FRONTEND_URL")
 google_auth_router = APIRouter()
 
 def get_google_oauth_config():
+    client_id = os.getenv("GOOGLE_CLIENT_ID")
+    client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+    
+    if client_id and client_secret:
+        return {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "redirect_uris": [redirect_uri] if redirect_uri else [],
+            "token_uri": "https://oauth2.googleapis.com/token"
+        }
+
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     oauth_json_path = os.path.join(base_dir, "oauth.json")
     if not os.path.exists(oauth_json_path):
-        raise HTTPException(status_code=500, detail="oauth.json not found in root workspace")
+        raise HTTPException(status_code=500, detail="Google OAuth not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET env variables, or provide oauth.json.")
     with open(oauth_json_path, "r") as f:
         config = json.load(f)
     return config["web"]

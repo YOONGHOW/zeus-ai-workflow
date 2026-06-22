@@ -18,7 +18,10 @@ def initialize_firebase():
                 'storageBucket': FIREBASE_STORAGE_BUCKET
             })
         else:
-            print(f"[Warning] service_account.json not found at {cred_path}. Firebase might fail.")
+            print(f"[Info] service_account.json not found at {cred_path}. Initializing with Application Default Credentials (ADC).")
+            firebase_admin.initialize_app(options={
+                'storageBucket': FIREBASE_STORAGE_BUCKET
+            })
 
 def upload_file_to_firebase(file_bytes: bytes, destination_blob_name: str, content_type: str = "application/octet-stream") -> str:
     initialize_firebase()
