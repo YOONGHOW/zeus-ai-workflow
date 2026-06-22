@@ -79,7 +79,7 @@ class FileTable(Base):
     
     file_id = Column(String, primary_key=True)
     filename = Column(String)
-    file_data = Column(LargeBinary)
+    firebase_url = Column(String, nullable=True)
     mime_type = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     status = Column(String, default="uploaded")

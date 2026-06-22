@@ -40,6 +40,7 @@ from contextlib import asynccontextmanager
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
+from dbconfig.firebase import upload_file_to_firebase, download_file_from_firebase, get_file_url
 from dbconfig.db import (
     FileTable,
     Base,
@@ -364,7 +365,7 @@ async def process_document(file_id: str, db: Session = Depends(get_db)):
             yield json.dumps({"progress": "Initializing...", "percent": 10}) + "\n\n"
             await asyncio.sleep(0.1)
 
-            file_bytes = record.file_data
+            file_bytes = download_file_from_firebase(record.file_id) if getattr(record, 'firebase_url', None) else b""
             filename = record.filename or ""
             mime_type = record.mime_type or ""
 
@@ -402,12 +403,8 @@ async def process_document(file_id: str, db: Session = Depends(get_db)):
                             img_bytes = pix.tobytes("png")
                             
                             yield json.dumps({"progress": f"Processing Page {i+1} of {total_pages}...", "percent": 15 + int((i/total_pages)*60)}) + "\n\n"
-                            # Process sequentially to avoid PaddleOCR memory/thread issues
                             res = await loop.run_in_executor(None, process_paddle_ocr, img_bytes)
-                            
-                            # Adjust bounding boxes by page? (Wait, docExtract just returns res)
                             page_details = res.get("ocr_details", [])
-                            # tag with page number
                             for p in page_details:
                                 if isinstance(p, dict): p["page_num"] = i
                             
@@ -510,10 +507,12 @@ async def upload_document(
     file_bytes = await file.read()
     file_id = f"FILE-{int(time.time())}"
     
+    firebase_url = upload_file_to_firebase(file_bytes, file_id, file.content_type)
+    
     new_record = FileTable(  
         file_id=file_id,
         filename=file.filename,
-        file_data=file_bytes, 
+        firebase_url=firebase_url, 
         mime_type=file.content_type,
         status="uploaded",
         session_id=session_id,
@@ -543,7 +542,8 @@ async def get_file(file_id: str, db: Session = Depends(get_db)):
     record = db.query(FileTable).filter(FileTable.file_id == file_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="File not found")
-    return Response(content=record.file_data, media_type=record.mime_type)
+    file_bytes = download_file_from_firebase(record.file_id) if getattr(record, 'firebase_url', None) else b""
+    return Response(content=file_bytes, media_type=record.mime_type)
 
 @app.get("/search/documents")
 async def search_documents(term: str, db: Session = Depends(get_db)):
@@ -582,10 +582,12 @@ async def upload_document(
         
         contents = await file.read()
         
+        firebase_url = upload_file_to_firebase(contents, file_id, file.content_type)
+        
         new_file = FileTable(
             file_id=file_id,
             filename=file.filename,
-            file_data=contents,  
+            firebase_url=firebase_url,  
             mime_type=file.content_type,
             status="pending_ocr",
             session_id=session_id,
@@ -628,13 +630,19 @@ async def auth_register(payload: RegisterRequest, db: Session = Depends(get_db))
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    # Try to create user in Firebase
+    from auth.firebase_auth import create_firebase_user
+    fb_res = create_firebase_user(payload.email, payload.password)
+    if fb_res.get("status") == "error":
+        raise HTTPException(status_code=400, detail=f"Firebase Registration failed: {fb_res.get('message')}")
+        
     try:
         hashed_pwd = hashlib.sha256(payload.password.encode()).hexdigest()
         new_user = UserTable(email=payload.email, password=hashed_pwd, role="user")
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
-        return {"status": "success", "userid": new_user.userid, "email": new_user.email, "role": new_user.role}
+        return {"status": "success", "userid": new_user.userid, "email": new_user.email, "role": new_user.role, "firebase_uid": fb_res.get("uid")}
     except Exception as e:
         db.rollback()
         print(f"[Error] Registration failed: {e}")
@@ -642,16 +650,31 @@ async def auth_register(payload: RegisterRequest, db: Session = Depends(get_db))
 
 @zeus_router.post("/auth/login")
 async def auth_login(payload: LoginRequest, db: Session = Depends(get_db)):
+    from auth.firebase_auth import verify_firebase_login
+    
+    # Attempt Firebase authentication
+    fb_res = verify_firebase_login(payload.email, payload.password)
+    if fb_res.get("status") != "success":
+        raise HTTPException(
+            status_code=401, 
+            detail="Invalid email or password"
+        )
+
+    # Ensure the user exists in the local database to get user metadata (userid, role, etc.)
     user = db.query(UserTable).filter(UserTable.email == payload.email).first()
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        raise HTTPException(
+            status_code=401, 
+            detail="Account verified in Firebase, but not registered in local database."
+        )
         
-    hashed_pwd = hashlib.sha256(payload.password.encode()).hexdigest()
-    # Check both raw password (if they migrated without hashing) and hashed
-    if user.password != payload.password and user.password != hashed_pwd:
-        raise HTTPException(status_code=401, detail="Invalid email or password")
-        
-    return {"status": "success", "userid": user.userid, "email": user.email, "role": user.role}
+    return {
+        "status": "success", 
+        "userid": user.userid, 
+        "email": user.email, 
+        "role": user.role,
+        "firebase_token": fb_res.get("idToken")
+    }
 
 @zeus_router.get("/user/settings")
 async def get_user_settings(userid: int, db: Session = Depends(get_db)):
@@ -879,10 +902,12 @@ async def upload_kb(
             file_id = str(uuid.uuid4())
             contents = await file.read()
             
+            firebase_url = upload_file_to_firebase(contents, file_id, file.content_type)
+            
             new_file = FileTable(
                 file_id=file_id,
                 filename=file.filename,
-                file_data=contents,
+                firebase_url=firebase_url,
                 mime_type=file.content_type,
                 status="pending_ocr",
                 session_id=session_id
@@ -1334,7 +1359,7 @@ async def api_validate_workflow(payload: dict):
         return {"status": "error", "message": "Workflow must have an End node."}
     return {"status": "success", "message": "Workflow is valid."}
 
-from google_auth.googleAuth import google_auth_router
+from auth.googleAuth import google_auth_router
 
 app.include_router(config_router)
 app.include_router(zeus_router)

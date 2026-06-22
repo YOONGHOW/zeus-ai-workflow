@@ -54,9 +54,11 @@ async def ensure_project_embeddings(session_id: str, db: Session):
         return
 
     chunks_with_embeddings = []
+    from dbconfig.firebase import download_file_from_firebase
     for pf in project_files:
         text = pf.ocr_text
-        if not text and pf.file_data:
+        file_bytes = download_file_from_firebase(pf.file_id) if getattr(pf, 'firebase_url', None) else b""
+        if not text and file_bytes:
             try:
                 filename = pf.filename or ""
                 mime_type = pf.mime_type or ""
@@ -65,10 +67,10 @@ async def ensure_project_embeddings(session_id: str, db: Session):
                     is_text_file = True
                 
                 if is_text_file:
-                    text = pf.file_data.decode("utf-8", errors="ignore")
+                    text = file_bytes.decode("utf-8", errors="ignore")
                     pf.ocr_details = [{"res": {"rec_texts": [text], "dt_polys": []}}]
                 else:
-                    ocr_result = process_paddle_ocr(pf.file_data)
+                    ocr_result = process_paddle_ocr(file_bytes)
                     text = ocr_result.get("raw_text", "")
                     pf.ocr_details = ocr_result.get("ocr_details", [])
                 

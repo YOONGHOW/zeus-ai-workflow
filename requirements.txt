@@ -20,6 +20,7 @@ pymupdf
 python-dotenv
 google-api-python-client
 google-auth
+firebase-admin
 python-multipart
 fpdf2
 
