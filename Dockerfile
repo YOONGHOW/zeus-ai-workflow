@@ -16,10 +16,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the Python backend scripts and config files
+# Copy the Python backend scripts
 COPY py_script/ ./py_script/
-COPY service_account.json ./service_account.json
-COPY oauth.json ./oauth.json
 
 # Set env port variable default (Cloud Run will override this)
 ENV PORT=8000
