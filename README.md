@@ -77,6 +77,3 @@ Run the following single command in the project root directory to boot both the 
 ```bash
 npm run dev:all
 ```
-
-*   **Frontend client**: Typically running at `http://localhost:5173`
-*   **FastAPI server**: Running at `http://localhost:8000`

@@ -93,10 +93,13 @@ def generate_pdf_report(content: str, filename: str, session_id: str = None, use
         if not filename.endswith('.pdf'):
             filename += '.pdf'
             
+        from dbconfig.firebase import upload_file_to_firebase
+        firebase_url = upload_file_to_firebase(pdf_bytes, file_id, "application/pdf")
+            
         new_file = FileTable(
             file_id=file_id,
             filename=filename,
-            file_data=pdf_bytes,
+            firebase_url=firebase_url,
             mime_type="application/pdf",
             status="generated_report",
             session_id=session_id,

@@ -548,8 +548,10 @@ API Response Data:
                             
                             # 3. Synchronously run PaddleOCR or decode text files directly
                             from function import process_paddle_ocr
+                            from dbconfig.firebase import download_file_from_firebase
                             for pf in session_files:
-                                if (not pf.ocr_text) and pf.file_data:
+                                file_bytes = download_file_from_firebase(pf.file_id) if getattr(pf, 'firebase_url', None) else b""
+                                if (not pf.ocr_text) and file_bytes:
                                     try:
                                         filename = pf.filename or ""
                                         mime_type = pf.mime_type or ""
@@ -559,11 +561,11 @@ API Response Data:
                                         
                                         if is_text_file:
                                             print(f"[Backend Chat] Decoding text file synchronously: {pf.filename}")
-                                            text = pf.file_data.decode("utf-8", errors="ignore")
+                                            text = file_bytes.decode("utf-8", errors="ignore")
                                             pf.ocr_details = [{"res": {"rec_texts": [text], "dt_polys": []}}]
                                         else:
                                             print(f"[Backend Chat] Running PaddleOCR synchronously for: {pf.filename}")
-                                            ocr_res = process_paddle_ocr(pf.file_data)
+                                            ocr_res = process_paddle_ocr(file_bytes)
                                             text = ocr_res.get("raw_text", "")
                                             pf.ocr_details = ocr_res.get("ocr_details", [])
                                         

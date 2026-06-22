@@ -224,9 +224,11 @@ async def execute_workflow(workflow_data: dict) -> AsyncGenerator[str, None]:
                     db = SessionLocal()
                     record = db.query(FileTable).filter(FileTable.file_id == file_id).first()
                     db.close()
-                    if record and record.file_data:
+                    from dbconfig.firebase import download_file_from_firebase
+                    file_bytes = download_file_from_firebase(record.file_id) if record and getattr(record, 'firebase_url', None) else b""
+                    if record and file_bytes:
                         from function.docExtract import process_paddle_ocr
-                        ocr_res = process_paddle_ocr(record.file_data)
+                        ocr_res = process_paddle_ocr(file_bytes)
                         ocr_text = ocr_res.get("raw_text", "")
                 context_data = f"OCR Output:\n{ocr_text}\nPrevious Context: {context_data}"
                 
