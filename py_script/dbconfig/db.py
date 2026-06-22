@@ -11,7 +11,7 @@ load_dotenv(dotenv_path=env_path)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_recycle=3600, pool_size=10, max_overflow=20)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -220,3 +220,26 @@ def add_user_tokens(userid: int, tokens: int):
         db.close()
     except Exception as e:
         print(f"[Error] Error adding user tokens: {e}")
+
+class TrackError(Base):
+    __tablename__ = "track_error"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    component = Column(String)  # E.g., 'process_document_background', '/auth/login'
+    error_message = Column(Text, nullable=False)
+    stack_trace = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+def log_error_to_db(component: str, error_message: str, stack_trace: str = None):
+    try:
+        db = SessionLocal()
+        new_error = TrackError(
+            component=component, 
+            error_message=error_message,
+            stack_trace=stack_trace
+        )
+        db.add(new_error)
+        db.commit()
+        db.close()
+    except Exception as e:
+        print(f"[Fallback Error Logging] Failed to save to track_error: {e}")
