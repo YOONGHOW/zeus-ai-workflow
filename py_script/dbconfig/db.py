@@ -1,12 +1,10 @@
 import os
 from dotenv import load_dotenv
-from sqlalchemy import Column, Integer, String, create_engine, LargeBinary, Text, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, create_engine, LargeBinary, Text, ForeignKey, DateTime, JSON
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.sql import func
 
-# Load environment variables from .env file
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 env_path = os.path.join(base_dir, '.env')
 load_dotenv(dotenv_path=env_path)
@@ -18,16 +16,11 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 def create_readonly_engine(connection_str: str, db_type: str = ""):
-    """
-    Creates a database engine configured with read-only connection parameters
-    and strict execution timeouts to ensure total sandbox security.
-    """
     connect_args = {"connect_timeout": 5}
     db_type_lower = db_type.lower() if db_type else ""
     
-    # Check both connection string protocol and db_type
     if "sqlite" in connection_str or "sqlite" in db_type_lower:
-        connect_args["timeout"] = 5  # SQLite busy timeout (seconds)
+        connect_args["timeout"] = 5  
         connect_args["uri"] = True
         if "mode=" not in connection_str:
             if "?" in connection_str:
@@ -35,8 +28,7 @@ def create_readonly_engine(connection_str: str, db_type: str = ""):
             else:
                 connection_str += "?mode=ro"
     elif "postgresql" in connection_str or "postgres" in db_type_lower:
-        connect_args["options"] = "-c statement_timeout=5000"  # Postgres timeout (ms)
-    
+        connect_args["options"] = "-c statement_timeout=5000"
     readonly_engine = create_engine(connection_str, connect_args=connect_args)
     
     from sqlalchemy import event
@@ -84,8 +76,8 @@ class FileTable(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     status = Column(String, default="uploaded")
     ocr_text = Column(Text)
-    ocr_details = Column(JSONB)
-    extracted_data = Column(JSONB)
+    ocr_details = Column(JSON)
+    extracted_data = Column(JSON)
     session_id = Column(String)
     userid = Column(Integer, ForeignKey("client.userid"), nullable=True)
 
@@ -167,7 +159,7 @@ class ScheduledTask(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     workflow_id = Column(String, nullable=False)
     cron_expression = Column(String, nullable=False)
-    payload_data = Column(JSONB)
+    payload_data = Column(JSON)
     is_active = Column(Integer, default=1)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())

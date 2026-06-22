@@ -255,7 +255,9 @@ async def lifespan(app: FastAPI):
         from sqlalchemy import text
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE client ADD COLUMN IF NOT EXISTS token_usage INTEGER DEFAULT 0;"))
-        print("[OK] Database schema updated: client.token_usage added if missing")
+            conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;"))
+            conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS userid INTEGER;"))
+        print("[OK] Database schema updated: client and chat_sessions columns verified")
     except Exception as e:
         print(f"[Error] Failed to update schema dynamically: {e}")
     yield
