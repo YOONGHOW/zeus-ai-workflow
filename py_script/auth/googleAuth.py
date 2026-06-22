@@ -6,6 +6,12 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from dbconfig.db import get_db, UserTable
+from dotenv import load_dotenv
+
+base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+load_dotenv(dotenv_path=os.path.join(base_dir, ".env"))
+
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 google_auth_router = APIRouter()
 
@@ -19,7 +25,7 @@ def get_google_oauth_config():
     return config["web"]
 
 @google_auth_router.get("/auth/google/login")
-async def google_login(userid: int, frontend_url: str = "http://localhost:5173"):
+async def google_login(userid: int, frontend_url: str = FRONTEND_URL):
     try:
         config = get_google_oauth_config()
         client_id = config["client_id"]
@@ -49,7 +55,7 @@ async def google_login(userid: int, frontend_url: str = "http://localhost:5173")
 
 @google_auth_router.get("/auth/google/callback")
 async def google_callback(code: str = None, state: str = None, error: str = None, db: Session = Depends(get_db)):
-    frontend_url = "http://localhost:5173"
+    frontend_url = FRONTEND_URL
     userid = None
     if state:
         parts = state.split("|", 1)
