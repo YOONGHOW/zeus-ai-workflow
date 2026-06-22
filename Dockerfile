@@ -20,8 +20,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY py_script/ ./py_script/
 
 # Set env port variable default (Cloud Run will override this)
-ENV PORT=8000
-EXPOSE 8000
+ENV PORT=8080
+EXPOSE 8080
 
 # Run the backend server
 CMD ["python", "py_script/server.py"]
