@@ -23,7 +23,7 @@ const currentAttachedFiles = new Map<string, File>();
 
 export function initializeZeusChat() {
     console.log("Initializing Zeus Bot Logic...");
-    const BASE_URL = 'http://127.0.0.1:8000';
+    const BASE_URL = import.meta.env.VITE_API_BASE_URL;
     let currentSessionId: string | null = null;
     let pendingSessionType: string = 'chat';
 
@@ -1703,7 +1703,7 @@ export function initializeZeusChat() {
                 updateSourceActiveState();
                 chatInput.focus();
             };
-            
+
             workflowModeClear.onclick = (e) => {
                 e.stopPropagation();
                 isWorkflowMode = false;
@@ -1747,7 +1747,7 @@ export function initializeZeusChat() {
                         formData.append('userid', user.userid.toString());
                     }
 
-                    const response = await fetch('http://127.0.0.1:8000/upload_document', {
+                    const response = await fetch(`${BASE_URL}/upload_document`, {
                         method: 'POST',
                         body: formData
                     });
@@ -1843,7 +1843,7 @@ export function initializeZeusChat() {
                 try {
                     const user = JSON.parse(userStr);
                     userid = user.userid;
-                } catch (e) {}
+                } catch (e) { }
             }
 
             fetch(`${BASE_URL}/zeus/send_email_confirm`, {
@@ -1851,42 +1851,42 @@ export function initializeZeusChat() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ to_email: to, subject: subject, body: body, userid: userid })
             })
-            .then(res => res.json())
-            .then(() => {
-                approveBtn.innerHTML = '<i class="fas fa-check"></i> Sent';
-                approveBtn.style.background = '#059669';
-                const btnContainer = approveBtn.parentElement as HTMLElement;
-                if (btnContainer) btnContainer.style.display = 'none';
+                .then(res => res.json())
+                .then(() => {
+                    approveBtn.innerHTML = '<i class="fas fa-check"></i> Sent';
+                    approveBtn.style.background = '#059669';
+                    const btnContainer = approveBtn.parentElement as HTMLElement;
+                    if (btnContainer) btnContainer.style.display = 'none';
 
-                const card = approveBtn.closest('.zeus-email-draft-card');
-                if (card) {
-                    const statusChip = card.querySelector('.zeus-email-status-chip') as HTMLElement;
-                    if (statusChip) {
-                        statusChip.innerText = 'Approved';
-                        statusChip.className = 'zeus-email-status-chip approved';
-                        statusChip.style.display = 'inline-block';
+                    const card = approveBtn.closest('.zeus-email-draft-card');
+                    if (card) {
+                        const statusChip = card.querySelector('.zeus-email-status-chip') as HTMLElement;
+                        if (statusChip) {
+                            statusChip.innerText = 'Approved';
+                            statusChip.className = 'zeus-email-status-chip approved';
+                            statusChip.style.display = 'inline-block';
+                        }
                     }
-                }
 
-                if (currentSessionId) {
-                    fetch(`${BASE_URL}/zeus/history/update_email_status`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            session_id: currentSessionId,
-                            to_email: to,
-                            status: 'approved'
-                        })
-                    }).catch(err => console.error("Error saving approved status to DB history:", err));
-                }
-            })
-            .catch(err => {
-                console.error("Email send error:", err);
-                approveBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
-                approveBtn.style.background = '#dc2626';
-                approveBtn.disabled = false;
-                if (rejectBtn) rejectBtn.disabled = false;
-            });
+                    if (currentSessionId) {
+                        fetch(`${BASE_URL}/zeus/history/update_email_status`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                session_id: currentSessionId,
+                                to_email: to,
+                                status: 'approved'
+                            })
+                        }).catch(err => console.error("Error saving approved status to DB history:", err));
+                    }
+                })
+                .catch(err => {
+                    console.error("Email send error:", err);
+                    approveBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+                    approveBtn.style.background = '#dc2626';
+                    approveBtn.disabled = false;
+                    if (rejectBtn) rejectBtn.disabled = false;
+                });
         }
 
         const rejectBtn = target.closest('.zeus-reject-email-btn') as HTMLButtonElement | null;

@@ -2,7 +2,6 @@
 
 <div id="zeusSettingsModal" class="sm-overlay">
     <div class="sm-dialog">
-        <!-- LEFT SIDEBAR -->
         <nav class="sm-sidebar">
             <div class="sm-sidebar-brand">
                 <span class="sm-brand-text">Settings</span>
@@ -29,7 +28,6 @@
             </ul>
         </nav>
 
-        <!-- RIGHT CONTENT PANEL -->
         <div class="sm-panel">
             <div class="sm-panel-topbar">
                 <div class="sm-panel-title" id="zeusSettingsTitle">Preferences</div>
@@ -38,13 +36,13 @@
                 </button>
             </div>
             <div class="sm-panel-body" id="zeusSettingsBody">
-                <!-- Dynamically populated by JS -->
             </div>
         </div>
     </div>
 </div>
 
 <script>
+    const BASE_URL = "%VITE_API_BASE_URL%";
     (() => {
         const settingsModal = document.getElementById('zeusSettingsModal');
         const closeSettingsBtn = document.getElementById('closeSettingsBtn');
@@ -96,7 +94,7 @@
             if (currentSettingsTab === 'settings') {
                 modalBody.innerHTML = '<div style="text-align:center;padding:40px;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:#6366f1;"></i></div>';
                 try {
-                    const res = await fetch(`http://127.0.0.1:8000/user/settings?userid=${user.userid}`);
+                    const res = await fetch(`${BASE_URL}/user/settings?userid=${user.userid}`);
                     let data = { google_connected: 0, email_enabled: 0, calendar_enabled: 0 };
                     if (res.ok) data = await res.json();
 
@@ -205,7 +203,7 @@
 
                         const newData = { ...data, userid: user.userid, ...updates };
                         try {
-                            const response = await fetch('http://127.0.0.1:8000/user/settings', {
+                            const response = await fetch(`${BASE_URL}/user/settings`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify(newData)
@@ -230,7 +228,7 @@
                             updateSettings({ google_connected: 0, email_enabled: 0, calendar_enabled: 0 });
                         } else {
                             // Connect
-                            window.location.href = `http://127.0.0.1:8000/auth/google/login?userid=${user.userid}&frontend_url=${window.location.origin}`;
+                            window.location.href = `${BASE_URL}/auth/google/login?userid=${user.userid}&frontend_url=${window.location.origin}`;
                         }
                     });
                     document.getElementById('emailToggle')?.addEventListener('change', e => {
@@ -249,7 +247,7 @@
                 modalBody.innerHTML = '<div style="text-align:center;padding:40px;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:#6366f1;"></i></div>';
                 try {
                     if (user.role === 'admin') {
-                        const res = await fetch('http://127.0.0.1:8000/admin/token_usage');
+                        const res = await fetch(`${BASE_URL}/admin/token_usage`);
                         if (!res.ok) throw new Error();
                         const data = await res.json();
                         const totalTokens = data.reduce((s, u) => s + (u.token_usage || 0), 0);
@@ -314,7 +312,7 @@
                         document.getElementById('refreshUsageBtn')?.addEventListener('click', renderSettingsTab);
 
                     } else {
-                        const res = await fetch(`http://127.0.0.1:8000/user/token_usage?userid=${user.userid}`);
+                        const res = await fetch(`${BASE_URL}/user/token_usage?userid=${user.userid}`);
                         let tokenUsage = 0, tokenLimit = 300000, tokenPercentage = 0, daysLeft = 30;
                         if (res.ok) {
                             const d = await res.json();

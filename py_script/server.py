@@ -67,6 +67,7 @@ os.environ['SSL_CERT_FILE'] = certifi.where()
 from dotenv import load_dotenv
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
 load_dotenv(dotenv_path=env_path)
+API_BASE_URL = os.getenv("VITE_API_BASE_URL")
 
 def load_prompt(filename: str) -> str:
     try:
@@ -170,7 +171,7 @@ async def execute_read_document(file_id: str) -> str:
 
     async with httpx.AsyncClient(timeout=120.0) as client:
         try:
-            response = await client.get(f"http://127.0.0.1:8000/process_document/{file_id}")
+            response = await client.get(f"{API_BASE_URL}/process_document/{file_id}")
             if response.status_code != 200:
                 return f"Error reading document: {response.text}"
             
@@ -563,7 +564,7 @@ async def search_documents(term: str, db: Session = Depends(get_db)):
 async def process_document_background(file_id: str):
     async with httpx.AsyncClient(timeout=120.0) as client:
         try:
-            response = await client.get(f"http://127.0.0.1:8000/process_document/{file_id}")
+            response = await client.get(f"{API_BASE_URL}/process_document/{file_id}")
             print(f"[Background Task] Document {file_id} processed, status: {response.status_code}")
         except Exception as e:
             print(f"[Background Task] Error processing document {file_id}: {e}")
