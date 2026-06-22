@@ -63,6 +63,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
 os.environ["DISABLE_MODEL_SOURCE_CHECK"] = "True"
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
+os.environ["FLAGS_enable_pir_api"] = "0"
 os.environ['GRPC_DEFAULT_SSL_ROOTS_FILE_PATH'] = certifi.where()
 os.environ['SSL_CERT_FILE'] = certifi.where()
 
