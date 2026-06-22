@@ -16,6 +16,7 @@ langchain-community
 langchain-google-genai
 
 paddleocr
+paddlepaddle
 pymupdf
 python-dotenv
 google-api-python-client
