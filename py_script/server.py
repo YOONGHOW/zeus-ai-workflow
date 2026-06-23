@@ -273,8 +273,8 @@ app.add_middleware(
     allow_origins=[
         "https://zeus-ai-workflow.firebaseapp.com",
         "https://zeus-ai-workflow.web.app"
-        "http://127.0.0.1:8080",
-        "http://localhost:5173",
+        #"http://127.0.0.1:8080",
+        #"http://localhost:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
