@@ -25,3 +25,6 @@ firebase-admin
 python-multipart
 fpdf2
 
+jinja2
+playwright
+weasyprint

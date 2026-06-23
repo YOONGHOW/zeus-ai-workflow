@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ report_title }}</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: #1f2937;
+      background: #f6f7fb;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px;
+      background: #ffffff;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      padding-bottom: 22px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    .brand {
+      font-size: 12px;
+      font-weight: 700;
+      color: #0f766e;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.15;
+      color: #111827;
+      font-weight: 700;
+    }
+    .subtitle {
+      margin-top: 8px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+    .meta {
+      min-width: 170px;
+      text-align: right;
+      color: #6b7280;
+      font-size: 12px;
+    }
+    .summary {
+      margin: 24px 0;
+      padding: 16px 18px;
+      border: 1px solid #d1fae5;
+      border-left: 4px solid #10b981;
+      background: #f0fdf4;
+      border-radius: 6px;
+      color: #14532d;
+    }
+    .section-title {
+      margin: 24px 0 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #374151;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .chart-wrap {
+      height: 330px;
+      padding: 16px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #ffffff;
+      page-break-inside: avoid;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+    }
+    th {
+      padding: 9px 10px;
+      text-align: left;
+      color: #374151;
+      background: #f3f4f6;
+      border-bottom: 1px solid #d1d5db;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      overflow-wrap: anywhere;
+    }
+    td {
+      padding: 9px 10px;
+      border-bottom: 1px solid #eef2f7;
+      color: #1f2937;
+      vertical-align: top;
+      overflow-wrap: anywhere;
+    }
+    tr:nth-child(even) td { background: #fafafa; }
+    .empty {
+      padding: 18px;
+      color: #6b7280;
+      border: 1px dashed #d1d5db;
+      border-radius: 8px;
+      background: #f9fafb;
+    }
+    .sql {
+      white-space: pre-wrap;
+      padding: 12px;
+      color: #374151;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 11px;
+      overflow-wrap: anywhere;
+    }
+    .footer {
+      margin-top: 28px;
+      padding-top: 12px;
+      border-top: 1px solid #e5e7eb;
+      color: #9ca3af;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    @media print {
+      body { background: #ffffff; }
+      .page { max-width: none; padding: 0; }
+      .chart-wrap { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="header">
+      <div>
+        <div class="brand">Zeus AI Workflow</div>
+        <h1>{{ report_title }}</h1>
+        <div class="subtitle">{{ report_subtitle }}</div>
+      </div>
+      <div class="meta">
+        <div>Generated</div>
+        <strong>{{ generated_at }}</strong>
+      </div>
+    </header>
+
+    <section class="summary">{{ summary_note }}</section>
+
+    {% if chart.enabled %}
+      <section>
+        <div class="section-title">{{ chart.title }}</div>
+        <div class="chart-wrap">
+          <canvas id="reportChart"></canvas>
+        </div>
+      </section>
+    {% endif %}
+
+    <section>
+      <div class="section-title">Report Data{% if rows %} ({{ rows|length }} rows){% endif %}</div>
+      {% if columns and rows %}
+        <table>
+          <thead>
+            <tr>
+              {% for column in columns %}<th>{{ column }}</th>{% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                {% for column in columns %}<td>{{ row.get(column, "") }}</td>{% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty">No rows were returned for this report.</div>
+      {% endif %}
+    </section>
+
+    {% if sql_query %}
+      <section>
+        <div class="section-title">Source Query</div>
+        <div class="sql">{{ sql_query }}</div>
+      </section>
+    {% endif %}
+
+    <footer class="footer">
+      <span>Generated by Zeus AI Workflow</span>
+      <span>{{ generated_at }}</span>
+    </footer>
+  </main>
+
+  {% if chart.enabled %}
+  <script id="chart-data" type="application/json">
+    {{ chart | tojson }}
+  </script>
+  <script>
+    const chartDataElement = document.getElementById('chart-data');
+    const chartPayload = chartDataElement ? JSON.parse(chartDataElement.textContent) : null;
+    const ctx = document.getElementById('reportChart');
+    if (ctx && chartPayload && chartPayload.enabled) {
+      new Chart(ctx, {
+        type: chartPayload.type || 'bar',
+        data: {
+          labels: chartPayload.labels,
+          datasets: [{
+            label: chartPayload.y_axis,
+            data: chartPayload.values,
+            backgroundColor: 'rgba(16, 185, 129, 0.72)',
+            borderColor: '#047857',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: { legend: { display: true } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+  </script>
+  {% endif %}
+</body>
+</html>

@@ -258,6 +258,13 @@ class SettingsRequest(BaseModel):
     email_enabled: int
     calendar_enabled: int
 
+class GenerateDataReportRequest(BaseModel):
+    userid: int
+    db_name: str
+    prompt: str
+    filename: str = "data_report.pdf"
+    session_id: Optional[str] = None
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
@@ -1235,6 +1242,50 @@ register_zeus_chat_route(
 
 # ---------------- CONFIGURATION API ROUTER ----------------
 config_router = APIRouter(prefix="/api", tags=["Config"])
+
+@config_router.post("/reports/generate")
+async def generate_data_report(payload: GenerateDataReportRequest):
+    try:
+        from workflow.autoTask import execute_db_query, REPORT_CONTEXT_KIND
+        from function.fileGenerator import generate_structured_pdf_report
+
+        query_result = await execute_db_query(payload.db_name, payload.prompt, "", structured=True)
+        try:
+            report_context = json.loads(query_result)
+        except Exception:
+            raise HTTPException(status_code=400, detail=query_result)
+
+        if report_context.get("kind") != REPORT_CONTEXT_KIND:
+            raise HTTPException(status_code=400, detail=query_result)
+
+        pdf_result = generate_structured_pdf_report(
+            report_title=report_context.get("report_title", "Generated Database Report"),
+            summary_note=report_context.get("summary_note", "Report generated from the selected database."),
+            rows=report_context.get("rows", []),
+            columns=report_context.get("columns", []),
+            chart_config=report_context.get("chart_config", {}),
+            sql_query=report_context.get("sql_query", ""),
+            filename=payload.filename,
+            session_id=payload.session_id,
+            userid=payload.userid,
+            report_subtitle=f"Database report from {payload.db_name}",
+        )
+        if not pdf_result.get("success"):
+            raise HTTPException(status_code=500, detail=pdf_result.get("error", "Report generation failed"))
+
+        return {
+            "status": "success",
+            "file_id": pdf_result.get("file_id"),
+            "filename": pdf_result.get("filename"),
+            "download_link": pdf_result.get("firebase_url"),
+            "row_count": pdf_result.get("row_count", len(report_context.get("rows", []))),
+            "columns": pdf_result.get("columns", report_context.get("columns", [])),
+            "sql_query": report_context.get("sql_query", ""),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @config_router.get("/db_connections")
 async def get_db_connections(db: Session = Depends(get_db)):

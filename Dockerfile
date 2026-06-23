@@ -7,6 +7,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
     libgomp1 \
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libjpeg62-turbo \
+    libopenjp2-7 \
+    libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory inside the container
@@ -15,6 +20,7 @@ WORKDIR /app
 # Copy requirements file and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN playwright install --with-deps chromium
 
 # Copy the Python backend scripts
 COPY py_script/ ./py_script/

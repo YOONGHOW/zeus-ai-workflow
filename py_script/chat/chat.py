@@ -113,10 +113,7 @@ def register_zeus_chat_route(
             except Exception as e:
                 print(f"Error updating session title: {e}")
 
-            # If the user selected a database connection, route to dbAgent
-            if payload.db_conn_id is not None:
-                from function.dbAgent import run_db_agent
-                return await run_db_agent(payload, user_msg, mode, call_apifreellm_tracked, save_to_history)
+            # Removed dbAgent routing so smart agent can use the selected DB + tools together
 
             if mode == mode_web_search:
                 summary_html = await execute_web_search(user_msg)
@@ -723,9 +720,24 @@ API Response Data:
                                         
                                     elif function_name == "execute_db_query":
                                         from workflow.autoTask import execute_db_query
-                                        db_name = tool_call.get("db_name", "")
-                                        query_txt = tool_call.get("query", clean_user_msg)
-                                        tool_result = await execute_db_query(db_name, query_txt, "")
+                                        
+                                        db_name = ""
+                                        if payload.db_conn_id:
+                                            try:
+                                                from dbconfig.db import SessionLocal, DbConn
+                                                dbs = SessionLocal()
+                                                db_obj = dbs.query(DbConn).filter(DbConn.id == payload.db_conn_id).first()
+                                                if db_obj:
+                                                    db_name = db_obj.name
+                                                dbs.close()
+                                            except Exception:
+                                                pass
+
+                                        if not db_name:
+                                            tool_result = "Error: You cannot execute queries because the user has not selected a database connection. Politely ask the user to select a database from the connection dropdown."
+                                        else:
+                                            query_txt = tool_call.get("query", "")
+                                            tool_result = await execute_db_query(db_name, query_txt, "")
                                         
                                     elif function_name == "send_email":
                                         # Check if email is enabled
@@ -820,7 +832,8 @@ API Response Data:
                                         from function.fileGenerator import generate_pdf_report
                                         filename = tool_call.get("filename", "report.pdf")
                                         content = tool_call.get("content", "")
-                                        pdf_res = generate_pdf_report(content, filename, payload.session_id, userid)
+                                        chart_config = tool_call.get("chart_config", {})
+                                        pdf_res = generate_pdf_report(content, filename, payload.session_id, userid, chart_config)
                                         if pdf_res.get("success"):
                                             file_id = pdf_res.get("file_id")
                                             tool_result = f"PDF Report '{filename}' successfully generated (File ID: {file_id})."
