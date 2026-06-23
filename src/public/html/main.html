@@ -382,7 +382,7 @@
         }
 
         function setActiveMenu(selectedId) {
-            document.querySelectorAll('.history-item, .sb-item').forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('.history-item, .sb-item, .sb-session-item').forEach(item => item.classList.remove('active'));
             const activeItem = document.getElementById(selectedId) || document.getElementById('sbTaskAllocationBtn'); // Just a fallback if needed for styling
             if (activeItem && selectedId !== 'menu-task-allocation' && selectedId !== 'menu-documents') {
                 activeItem.classList.add('active');

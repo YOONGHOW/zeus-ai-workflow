@@ -91,7 +91,7 @@ class ChatSession(Base):
     type = Column(String, default="chat")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
-    userid = Column(Integer, ForeignKey("client.userid"))
+    userid = Column(Integer, ForeignKey("client.userid"), index=True)
     
     # Relationship to messages
     messages = relationship("ChatHistory", back_populates="session", cascade="all, delete-orphan")
@@ -100,7 +100,7 @@ class ChatHistory(Base):
     __tablename__ = "chat_history_pg"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    session_id = Column(String, ForeignKey("chat_sessions.id", ondelete="CASCADE"), nullable=False)
+    session_id = Column(String, ForeignKey("chat_sessions.id", ondelete="CASCADE"), nullable=False, index=True)
     role = Column(String, nullable=False)
     content = Column(Text, nullable=False)
     mode = Column(String, default="Auto")

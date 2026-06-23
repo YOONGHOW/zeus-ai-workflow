@@ -273,6 +273,8 @@ app.add_middleware(
     allow_origins=[
         "https://zeus-ai-workflow.firebaseapp.com",
         "https://zeus-ai-workflow.web.app"
+        "http://127.0.0.1:8080",
+        "http://localhost:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -287,27 +289,53 @@ class SaveHistoryRequest(BaseModel):
     content: str
     mode: str = "Auto"
 
-def find_bounding_box_for_value(value: str, ocr_details: List[dict]) -> Optional[dict]:
-    if not value or not ocr_details:
-        return None
-    val_lower = str(value).strip().lower()
+def find_bounding_boxes_for_value(value, ocr_details: List[dict]) -> List[dict]:
+    if value is None or not ocr_details:
+        return []
     
-    for page_idx, page in enumerate(ocr_details):
-        res = page.get("res", page)
-        texts = res.get("rec_texts", [])
-        polys = res.get("dt_polys", [])
-        for i, text in enumerate(texts):
-            text_str = str(text).strip()
-            text_lower = text_str.lower()
-            if val_lower == text_lower or val_lower in text_lower:
-                poly = polys[i]
-                flat_box = [coord for pt in poly for coord in pt] if poly else []
-                return {
-                    "box": flat_box,
-                    "page": page_idx,
-                    "text": text_str
-                }
-    return None
+    # If the value is a dictionary or a list, recursively collect all sub-values
+    sub_values = []
+    if isinstance(value, dict):
+        for v in value.values():
+            if v is not None:
+                sub_values.append(v)
+    elif isinstance(value, list):
+        for v in value:
+            if v is not None:
+                sub_values.append(v)
+    else:
+        sub_values.append(value)
+        
+    results = []
+    for item in sub_values:
+        if isinstance(item, (dict, list)):
+            # Nested list/dict
+            results.extend(find_bounding_boxes_for_value(item, ocr_details))
+            continue
+            
+        val_str = str(item).strip()
+        if not val_str:
+            continue
+        val_lower = val_str.lower()
+        
+        # Look for matches in OCR details
+        for page_idx, page in enumerate(ocr_details):
+            res = page.get("res", page)
+            texts = res.get("rec_texts", [])
+            polys = res.get("dt_polys", [])
+            for i, text in enumerate(texts):
+                text_str = str(text).strip()
+                text_lower = text_str.lower()
+                if val_lower == text_lower or val_lower in text_lower:
+                    poly = polys[i]
+                    flat_box = [coord for pt in poly for coord in pt] if poly else []
+                    results.append({
+                        "box": flat_box,
+                        "page": page_idx,
+                        "text": text_str
+                    })
+                    break # Match one per sub-value to prevent duplicated highlights of same sub-value
+    return results
 
 @app.post("/highlight_fields")
 async def highlight_fields(payload: HighlightRequest, db: Session = Depends(get_db)):
@@ -322,24 +350,24 @@ async def highlight_fields(payload: HighlightRequest, db: Session = Depends(get_
         for field in payload.fields:
             val = payload.existing_values.get(field, None)
             if val is not None:
-                val_str = ""
+                # Handle single values as dict containing "value" if they are structured that way
+                val_to_search = val
                 if isinstance(val, dict) and "value" in val:
-                    val_str = str(val["value"])
+                    val_to_search = val["value"]
+                    
+                matches = find_bounding_boxes_for_value(val_to_search, ocr_details)
+                if matches:
+                    for m in matches:
+                        highlights.append({
+                            "field": field,
+                            "value": m["text"],
+                            "box": m["box"],
+                            "page": m["page"]
+                        })
                 else:
-                    val_str = str(val)
-                
-                match_info = find_bounding_box_for_value(val_str, ocr_details)
-                if match_info:
                     highlights.append({
                         "field": field,
-                        "value": val_str,
-                        "box": match_info["box"],
-                        "page": match_info["page"]
-                    })
-                else:
-                    highlights.append({
-                        "field": field,
-                        "value": val_str,
+                        "value": str(val),
                         "box": None,
                         "page": 0
                     })
@@ -447,17 +475,19 @@ async def process_document(file_id: str, db: Session = Depends(get_db)):
 
                     for key, val in llm_fields.items():
                         if val is not None:
-                            val_str = str(val)
-                            match_info = find_bounding_box_for_value(val_str, ocr_details)
-                            if match_info:
+                            # Use find_bounding_boxes_for_value to get all sub-value boxes
+                            matches = find_bounding_boxes_for_value(val, ocr_details)
+                            if matches:
+                                # If there are multiple matches (nested array/dict), store the list of boxes
+                                # and the original parsed value
                                 extracted_data[key] = {
-                                    "value": val_str,
-                                    "box": match_info["box"],
-                                    "page": match_info["page"]
+                                    "value": val,
+                                    "box": matches[0]["box"] if len(matches) == 1 else [m["box"] for m in matches if m["box"]],
+                                    "page": matches[0]["page"] if len(matches) == 1 else [m["page"] for m in matches]
                                 }
                             else:
                                 extracted_data[key] = {
-                                    "value": val_str,
+                                    "value": val,
                                     "box": None,
                                     "page": 0
                                 }
@@ -653,17 +683,17 @@ async def process_document_background(file_id: str):
                 llm_fields = parse_gemini_json(llm_response) or {}
                 for key, val in llm_fields.items():
                     if val is not None:
-                        val_str = str(val)
-                        match_info = find_bounding_box_for_value(val_str, ocr_details)
-                        if match_info:
+                        # Use find_bounding_boxes_for_value to get all sub-value boxes
+                        matches = find_bounding_boxes_for_value(val, ocr_details)
+                        if matches:
                             extracted_data[key] = {
-                                "value": val_str,
-                                "box": match_info["box"],
-                                "page": match_info["page"]
+                                "value": val,
+                                "box": matches[0]["box"] if len(matches) == 1 else [m["box"] for m in matches if m["box"]],
+                                "page": matches[0]["page"] if len(matches) == 1 else [m["page"] for m in matches]
                             }
                         else:
                             extracted_data[key] = {
-                                "value": val_str,
+                                "value": val,
                                 "box": None,
                                 "page": 0
                             }
