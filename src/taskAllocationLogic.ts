@@ -579,6 +579,9 @@ async function runTask(id: string) {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
 
+    const isValid = await validateTaskIntegrations(task);
+    if (!isValid) return;
+
     if (task.status === 'running') return; // already running
 
     task.status = 'running';
@@ -696,6 +699,10 @@ async function deleteTask(id: string) {
         confirmed = confirm(`Delete "${task.name || 'Untitled Task'}"?`);
     }
     if (!confirmed) return;
+
+    // Deactivate schedule in the backend before deleting locally
+    task.status = 'finish';
+    await syncTaskSchedule(task);
 
     const updated = tasks.filter(t => t.id !== id);
     saveTasks(updated);
@@ -835,9 +842,9 @@ function closeEditor() {
 // ================================================================
 //  SAVE TASK
 // ================================================================
-async function validateGoogleIntegration(): Promise<boolean> {
-    const hasGmailNode = currentNodes.some(n => n.type === 'gmail');
-    const hasCalendarNode = currentNodes.some(n => n.type === 'calendar');
+async function validateTaskIntegrations(task: Task): Promise<boolean> {
+    const hasGmailNode = task.nodes.some(n => n.type === 'gmail');
+    const hasCalendarNode = task.nodes.some(n => n.type === 'calendar');
 
     if (!hasGmailNode && !hasCalendarNode) {
         return true;
@@ -908,6 +915,20 @@ async function validateGoogleIntegration(): Promise<boolean> {
     }
 
     return true;
+}
+
+async function validateGoogleIntegration(): Promise<boolean> {
+    const dummyTask: Task = {
+        id: editingTaskId || '',
+        name: '',
+        description: '',
+        nodes: currentNodes,
+        connections: currentConnections,
+        status: 'finish',
+        createdAt: '',
+        updatedAt: ''
+    };
+    return await validateTaskIntegrations(dummyTask);
 }
 
 async function saveCurrentTask() {
@@ -1701,7 +1722,65 @@ function closeScheduleSidebar() {
     document.getElementById('taScheduleSidebar')!.style.display = 'none';
 }
 
-function saveSchedule() {
+function getCronExpression(freq: string, time: string, day: string): string {
+    if (!time) time = "00:00";
+    const [hour, minute] = time.split(':');
+    if (freq === 'daily') {
+        return `${parseInt(minute)} ${parseInt(hour)} * * *`;
+    } else if (freq === 'weekly') {
+        const dayMap: { [key: string]: number } = {
+            'Sunday': 0,
+            'Monday': 1,
+            'Tuesday': 2,
+            'Wednesday': 3,
+            'Thursday': 4,
+            'Friday': 5,
+            'Saturday': 6
+        };
+        const dow = dayMap[day] !== undefined ? dayMap[day] : 1;
+        return `${parseInt(minute)} ${parseInt(hour)} * * ${dow}`;
+    }
+    return '* * * * *';
+}
+
+async function syncTaskSchedule(task: Task) {
+    let userid: number | null = null;
+    const userStr = localStorage.getItem('zeusUser');
+    if (userStr) {
+        try {
+            const user = JSON.parse(userStr);
+            userid = user.userid;
+        } catch (e) { }
+    }
+
+    const freq = task.scheduleFrequency || 'once';
+    const time = task.scheduleTime || '00:00';
+    const day = task.scheduleDay || 'Monday';
+    const cronExpr = getCronExpression(freq, time, day);
+    const isActive = (task.status === 'scheduled' && freq !== 'once') ? 1 : 0;
+
+    try {
+        await fetch(`${BASE_URL}/api/workflow/schedule`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                workflow_id: task.id,
+                cron_expression: cronExpr,
+                payload_data: {
+                    nodes: task.nodes,
+                    connections: task.connections,
+                    userid: userid,
+                    workflow_id: task.id
+                },
+                is_active: isActive
+            })
+        });
+    } catch (err) {
+        console.error("Failed to sync schedule with server:", err);
+    }
+}
+
+async function saveSchedule() {
     if (!currentScheduleTaskId) return;
     const tasks = loadTasks();
     const task = tasks.find(t => t.id === currentScheduleTaskId);
@@ -1710,19 +1789,29 @@ function saveSchedule() {
     const freqEl = document.getElementById('taScheduleFrequency') as HTMLSelectElement;
     const timeEl = document.getElementById('taScheduleTime') as HTMLInputElement;
 
-    task.scheduleFrequency = freqEl.value;
-    task.scheduleTime = timeEl.value;
-
     // Read day from radio group
     const checkedDayRadio = document.querySelector('.ta-sched-day-pill input[type=radio]:checked') as HTMLInputElement;
-    task.scheduleDay = checkedDayRadio ? checkedDayRadio.value : 'Monday';
+    const proposedDay = checkedDayRadio ? checkedDayRadio.value : 'Monday';
+
+    // If setting a schedule, validate integrations first!
+    if (freqEl.value !== 'once') {
+        const isValid = await validateTaskIntegrations(task);
+        if (!isValid) return;
+    }
+
+    task.scheduleFrequency = freqEl.value;
+    task.scheduleTime = timeEl.value;
+    task.scheduleDay = proposedDay;
 
     // If already scheduled and changed to "once", stop schedule
     if (task.status === 'scheduled' && task.scheduleFrequency === 'once') {
         task.status = 'finish';
+    } else if (task.scheduleFrequency !== 'once') {
+        task.status = 'scheduled';
     }
 
     saveTasks(tasks);
+    syncTaskSchedule(task);
     closeScheduleSidebar();
     renderTaskList();
 
@@ -1731,12 +1820,17 @@ function saveSchedule() {
     }
 }
 
-function startSchedule(taskId: string) {
+async function startSchedule(taskId: string) {
     const tasks = loadTasks();
     const task = tasks.find(t => t.id === taskId);
     if (task) {
+        // Validate integration before starting the schedule!
+        const isValid = await validateTaskIntegrations(task);
+        if (!isValid) return;
+
         task.status = 'scheduled';
         saveTasks(tasks);
+        syncTaskSchedule(task);
         renderTaskList();
         if (typeof (window as any).showZeusNotification === 'function') {
             (window as any).showZeusNotification('Task scheduled successfully', 'success');
@@ -1750,6 +1844,7 @@ function pauseSchedule(taskId: string) {
     if (task) {
         task.status = 'finish';
         saveTasks(tasks);
+        syncTaskSchedule(task);
         renderTaskList();
         if (typeof (window as any).showZeusNotification === 'function') {
             (window as any).showZeusNotification('Schedule paused', 'success');
