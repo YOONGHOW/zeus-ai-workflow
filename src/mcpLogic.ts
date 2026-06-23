@@ -1723,9 +1723,14 @@ export function initializeZeusChat() {
             if (target.files && target.files.length > 0) {
                 const file = target.files[0];
                 const originalPlaceholder = chatInput.placeholder;
+                const originalBtnHtml = fileBtn ? fileBtn.innerHTML : '<i class="fa-solid fa-plus"></i>';
 
                 chatInput.placeholder = `Uploading ${file.name}...`;
                 chatInput.disabled = true;
+                if (fileBtn) {
+                    fileBtn.disabled = true;
+                    fileBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                }
 
                 try {
                     const user = JSON.parse(localStorage.getItem('zeusUser') || 'null');
@@ -1770,6 +1775,10 @@ export function initializeZeusChat() {
                     chatInput.placeholder = "Upload failed. Please try again.";
                 } finally {
                     chatInput.disabled = false;
+                    if (fileBtn) {
+                        fileBtn.disabled = false;
+                        fileBtn.innerHTML = originalBtnHtml;
+                    }
                     target.value = '';
                 }
             }

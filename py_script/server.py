@@ -220,6 +220,7 @@ class DbConnCreate(BaseModel):
     port: str = ""
     user: str = ""
     password: str = ""
+    ssl_mode: bool = False
 
 class ApiConnCreate(BaseModel):
     name: str
@@ -1280,6 +1281,17 @@ async def get_db_connections(db: Session = Depends(get_db)):
         })
     return results
 
+def verify_connection(conn_str: str, db_type: str):
+    if db_type.lower() == "mongodb":
+        return
+    from sqlalchemy import create_engine
+    try:
+        temp_engine = create_engine(conn_str, connect_args={"connect_timeout": 5})
+        with temp_engine.connect() as conn:
+            pass
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Database connection test failed: {str(e)}")
+
 @config_router.put("/db_connections/{conn_id}")
 async def update_db_connection(conn_id: int, payload: DbConnCreate, db: Session = Depends(get_db)):
     c = db.query(DbConn).filter(DbConn.id == conn_id).first()
@@ -1301,6 +1313,11 @@ async def update_db_connection(conn_id: int, payload: DbConnCreate, db: Session 
             auth += "@"
         port_str = f":{payload.port}" if payload.port else ""
         conn_str = f"{protocol}://{auth}{payload.host}{port_str}/{payload.database_name}"
+        if payload.ssl_mode and payload.type == "postgresql":
+            conn_str += "?sslmode=require"
+
+    # Validate before saving
+    verify_connection(conn_str, payload.type)
 
     c.name = payload.name
     c.database_name = payload.database_name
@@ -1330,7 +1347,12 @@ async def create_db_connection(payload: DbConnCreate, db: Session = Depends(get_
             auth += "@"
         port_str = f":{payload.port}" if payload.port else ""
         conn_str = f"{protocol}://{auth}{payload.host}{port_str}/{payload.database_name}"
+        if payload.ssl_mode and payload.type == "postgresql":
+            conn_str += "?sslmode=require"
     
+    # Validate before saving
+    verify_connection(conn_str, payload.type)
+
     new_conn = DbConn(
         name=payload.name,
         database_name=payload.database_name,
@@ -1369,6 +1391,8 @@ async def test_db_connection(payload: dict):
                 auth += "@"
             port_str = f":{payload.get('port')}" if payload.get("port") else ""
             conn_str = f"{protocol}://{auth}{payload.get('host')}{port_str}/{payload.get('database_name', '')}"
+            if payload.get("ssl_mode") and payload.get("type") == "postgresql":
+                conn_str += "?sslmode=require"
         
         if not conn_str:
             raise Exception("Invalid connection details provided.")

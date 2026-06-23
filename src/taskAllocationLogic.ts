@@ -457,6 +457,39 @@ export async function initializeTaskAllocation() {
     document.addEventListener('keydown', handleKeyDown);
 
     // Load workflows from database
+    if (emptyState && tableWrapper && tableBody) {
+        emptyState.style.display = 'none';
+        tableWrapper.style.display = '';
+        tableBody.innerHTML = `
+            <tr class="ta-skeleton-tr">
+                <td><div class="ta-skeleton-line long"></div></td>
+                <td><div class="ta-skeleton-line medium"></div></td>
+                <td><div class="ta-skeleton-line medium"></div></td>
+                <td><div class="ta-skeleton-line short"></div></td>
+                <td><div class="ta-skeleton-line short"></div></td>
+                <td><div class="ta-skeleton-line short"></div></td>
+                <td><div class="ta-skeleton-line short"></div></td>
+            </tr>
+            <tr class="ta-skeleton-tr">
+                <td><div class="ta-skeleton-line medium"></div></td>
+                <td><div class="ta-skeleton-line long"></div></td>
+                <td><div class="ta-skeleton-line medium"></div></td>
+                <td><div class="ta-skeleton-line short"></div></td>
+                <td><div class="ta-skeleton-line short"></div></td>
+                <td><div class="ta-skeleton-line short"></div></td>
+                <td><div class="ta-skeleton-line short"></div></td>
+            </tr>
+            <tr class="ta-skeleton-tr">
+                <td><div class="ta-skeleton-line long"></div></td>
+                <td><div class="ta-skeleton-line medium"></div></td>
+                <td><div class="ta-skeleton-line medium"></div></td>
+                <td><div class="ta-skeleton-line short"></div></td>
+                <td><div class="ta-skeleton-line short"></div></td>
+                <td><div class="ta-skeleton-line short"></div></td>
+                <td><div class="ta-skeleton-line short"></div></td>
+            </tr>
+        `;
+    }
     await loadTasksFromDb();
 
     // Initial render

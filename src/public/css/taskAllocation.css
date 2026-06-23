@@ -2021,4 +2021,49 @@ body.dark-mode .ta-schedule-badge.active {
 
 .ta-schedule-badge i {
     font-size: 11px;
+}
+
+/* ---- Skeleton Loading for Table ---- */
+@keyframes ta-shimmer {
+    0% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.ta-skeleton-line {
+    height: 12px;
+    border-radius: 4px;
+    background: linear-gradient(
+        90deg,
+        rgba(226, 232, 240, 0.6) 25%,
+        rgba(203, 213, 225, 0.8) 37%,
+        rgba(226, 232, 240, 0.6) 63%
+    );
+    background-size: 400% 100%;
+    animation: ta-shimmer 1.4s ease infinite;
+}
+
+body.dark-mode .ta-skeleton-line {
+    background: linear-gradient(
+        90deg,
+        rgba(30, 31, 32, 0.6) 25%,
+        rgba(45, 46, 48, 0.8) 37%,
+        rgba(30, 31, 32, 0.6) 63%
+    );
+    background-size: 400% 100%;
+}
+
+.ta-skeleton-line.short {
+    width: 40px;
+}
+
+.ta-skeleton-line.medium {
+    width: 80px;
+}
+
+.ta-skeleton-line.long {
+    width: 140px;
 }

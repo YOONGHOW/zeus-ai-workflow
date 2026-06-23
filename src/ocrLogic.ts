@@ -113,16 +113,22 @@ export function initializeOCRPage() {
         setExtractorStatus(elements.statusMessage, `Loading ${file.name}...`, 'loading');
 
         currentDocumentId = fileId || null;
-        elements.container.innerHTML = "";
+        elements.container.innerHTML = `
+            <div class="skeleton-doc-preview">
+                <div class="skeleton-page"></div>
+            </div>
+        `;
         pageCanvases = [];
         elements.textResults.classList.add('hidden');
         elements.resultsContainer.innerHTML = "";
         elements.checklist.innerHTML = `
-        <div class="ocr-processing-state">
-            <i class="fas fa-spinner fa-spin"></i>
-            <span>Preparing document preview...</span>
-        </div>`;
+            <div class="skeleton-checklist">
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+            </div>
+        `;
 
+        elements.container.innerHTML = "";
         if (file.type === 'application/pdf') {
             await renderPDF(file, elements.container);
         } else {
@@ -151,10 +157,22 @@ export function initializeOCRPage() {
         }
         setExtractorStatus(elements.statusMessage, `Extracting text from ${currentFile.name}...`, 'loading');
         elements.checklist.innerHTML = `
-        <div class="ocr-processing-state">
-            <i class="fas fa-spinner fa-spin"></i>
-            <span>Document is processing...</span>
-        </div>`;
+            <div class="skeleton-checklist">
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+            </div>
+        `;
+        elements.textResults.classList.remove('hidden');
+        elements.resultsContainer.innerHTML = `
+            <div class="skeleton-results">
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-line long"></div>
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line long"></div>
+            </div>
+        `;
 
         try {
             let fileId = currentDocumentId;
@@ -300,21 +318,6 @@ export function initializeOCRPage() {
     };
 
     const loadHistoricalDocument = async (fileId: string, filename: string, mimeType: string) => {
-        // 1. Fetch file info (ocr_details, extracted_data)
-        const infoRes = await fetch(`${API_BASE_URL}/document_info/${fileId}`);
-        if (!infoRes.ok) throw new Error("Failed to load document info");
-        const docInfo = await infoRes.json();
-        if (!docInfo) return;
-
-        // 2. Fetch the file blob
-        const fileRes = await fetch(`${API_BASE_URL}/view-file/${fileId}`);
-        if (!fileRes.ok) throw new Error("Failed to load document file");
-        const blob = await fileRes.blob();
-        const fileObj = new File([blob], filename, { type: mimeType });
-
-        currentFile = fileObj;
-        currentDocumentId = fileId;
-
         if (elements.fileName) {
             elements.fileName.textContent = filename;
         }
@@ -323,15 +326,57 @@ export function initializeOCRPage() {
         }
         setExtractorStatus(elements.statusMessage, `Loading ${filename}...`, 'loading');
 
-        elements.container.innerHTML = "";
+        // Immediately show skeleton loader in container, checklist, and results
+        elements.container.innerHTML = `
+            <div class="skeleton-doc-preview">
+                <div class="skeleton-page"></div>
+            </div>
+        `;
         pageCanvases = [];
-        elements.textResults.classList.add('hidden');
-        elements.resultsContainer.innerHTML = "";
+        elements.textResults.classList.remove('hidden');
+        elements.resultsContainer.innerHTML = `
+            <div class="skeleton-results">
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-line long"></div>
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line long"></div>
+            </div>
+        `;
         elements.checklist.innerHTML = `
-        <div class="ocr-processing-state">
-            <i class="fas fa-spinner fa-spin"></i>
-            <span>Preparing document preview...</span>
-        </div>`;
+            <div class="skeleton-checklist">
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+            </div>
+        `;
+
+        // 1. Fetch file info (ocr_details, extracted_data)
+        const infoRes = await fetch(`${API_BASE_URL}/document_info/${fileId}`);
+        if (!infoRes.ok) {
+            elements.container.innerHTML = `<div class="ocr-empty-state">No document loaded</div>`;
+            throw new Error("Failed to load document info");
+        }
+        const docInfo = await infoRes.json();
+        if (!docInfo) {
+            elements.container.innerHTML = `<div class="ocr-empty-state">No document loaded</div>`;
+            return;
+        }
+
+        // 2. Fetch the file blob
+        const fileRes = await fetch(`${API_BASE_URL}/view-file/${fileId}`);
+        if (!fileRes.ok) {
+            elements.container.innerHTML = `<div class="ocr-empty-state">No document loaded</div>`;
+            throw new Error("Failed to load document file");
+        }
+        const blob = await fileRes.blob();
+        const fileObj = new File([blob], filename, { type: mimeType });
+
+        currentFile = fileObj;
+        currentDocumentId = fileId;
+
+        // Clear skeletons in container when rendering document
+        elements.container.innerHTML = "";
 
         if (mimeType === 'application/pdf') {
             await renderPDF(fileObj, elements.container);

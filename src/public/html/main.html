@@ -107,7 +107,7 @@
                 <!-- Add / Edit Form -->
                 <div class="db-add-form" id="dbAddForm">
                     <div class="db-form-row">
-                        <div class="db-form-group">
+                        <div class="db-form-group" style="flex: 1; max-width: 240px; min-width: 140px;">
                             <label>Connection Type</label>
                             <div class="cb-custom-select" id="dbConnTypeSelect">
                                 <div class="cb-custom-select-trigger" id="dbConnTypeTrigger">
@@ -143,7 +143,7 @@
                             </div>
                             <input type="hidden" id="dbConnType" value="">
                         </div>
-                        <div class="db-form-group">
+                        <div class="db-form-group" style="flex: 1;">
                             <label>Database Name</label>
                             <input type="text" class="db-config-input" id="dbName" placeholder="my_database" />
                         </div>
@@ -167,6 +167,10 @@
                         <label>Password</label>
                         <input type="password" class="db-config-input" id="dbPass" placeholder="••••••••"
                             autocomplete="new-password" />
+                    </div>
+                    <div class="db-form-group" style="flex-direction: row; align-items: center; gap: 8px; margin-top: 8px; margin-bottom: 8px;">
+                        <input type="checkbox" id="dbSslMode" style="cursor: pointer; width: 16px; height: 16px;" />
+                        <label for="dbSslMode" style="cursor: pointer; user-select: none; margin-bottom: 0; text-transform: none; font-size: 11px; color: #475569; font-weight: 600; letter-spacing: 0.03em;">Require SSL (SSL Mode)</label>
                     </div>
                     <div class="db-form-group">
                         <div class="db-form-label-row">
@@ -762,6 +766,7 @@
                 document.getElementById('dbPass').value = c.password || '';
                 document.getElementById('dbDesc').value = c.description || '';
                 document.getElementById('dbConnType').value = c.type || '';
+                document.getElementById('dbSslMode').checked = (c.connection_str && c.connection_str.includes('sslmode=require')) ? true : false;
             } else {
                 dbEditingId = null;
                 document.getElementById('dbName').value = '';
@@ -771,6 +776,7 @@
                 document.getElementById('dbPass').value = '';
                 document.getElementById('dbDesc').value = '';
                 document.getElementById('dbConnType').value = '';
+                document.getElementById('dbSslMode').checked = false;
             }
         }
 
@@ -848,6 +854,7 @@
                     database_name: document.getElementById('dbName').value,
                     user: document.getElementById('dbUser').value,
                     password: document.getElementById('dbPass').value,
+                    ssl_mode: document.getElementById('dbSslMode').checked,
                 };
                 try {
                     const res = await fetch(`${BASE_URL}/api/db_connections/test`, {
@@ -880,6 +887,7 @@
                     user: document.getElementById('dbUser').value,
                     password: document.getElementById('dbPass').value,
                     description: document.getElementById('dbDesc').value,
+                    ssl_mode: document.getElementById('dbSslMode').checked,
                 };
                 const url = dbEditingId
                     ? `${BASE_URL}/api/db_connections/${dbEditingId}`

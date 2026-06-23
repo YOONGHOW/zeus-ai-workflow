@@ -210,11 +210,11 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 13px 16px;
+        padding: 10px 14px;
         border: 1.5px solid #e2e8f0;
-        border-radius: 14px;
+        border-radius: 12px;
         background: #ffffff;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 500;
         color: #0f172a;
         cursor: pointer;
@@ -280,8 +280,8 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 11px 16px;
-        font-size: 14px;
+        padding: 9px 14px;
+        font-size: 13px;
         font-weight: 400;
         color: #334155;
         cursor: pointer;
