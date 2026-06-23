@@ -110,6 +110,7 @@
                             <div class="sm-card-header">
                                 <h4>Google Account</h4>
                                 <p>Connect your Google account to enable Gmail and Google Calendar.</p>
+                                <div id="googleAccountEmailDisplay" style="font-size:12px; color:#10b981; font-weight:500; margin-top:4px; display:none;"></div>
                             </div>
 
                             <!-- Connect row -->
@@ -170,6 +171,17 @@
                             badgeContainer.innerHTML = state.google_connected
                                 ? `<span class="sm-status-badge connected"><i class="fa-solid fa-check"></i> Connected</span>`
                                 : `<span class="sm-status-badge disconnected"><i class="fa-solid fa-xmark"></i> Not Connected</span>`;
+                        }
+
+                        const emailDisplay = document.getElementById('googleAccountEmailDisplay');
+                        if (emailDisplay) {
+                            if (state.google_connected && state.google_email) {
+                                emailDisplay.textContent = `Connected as: ${state.google_email}`;
+                                emailDisplay.style.display = 'block';
+                            } else {
+                                emailDisplay.style.display = 'none';
+                                emailDisplay.textContent = '';
+                            }
                         }
 
                         const connectBtn = document.getElementById('connectGoogleBtn');

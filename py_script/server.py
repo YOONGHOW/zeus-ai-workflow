@@ -839,7 +839,8 @@ async def get_user_settings(userid: int, db: Session = Depends(get_db)):
         "userid": user.userid,
         "google_connected": user.google_connected or 0,
         "email_enabled": user.email_enabled or 0,
-        "calendar_enabled": user.calendar_enabled or 0
+        "calendar_enabled": user.calendar_enabled or 0,
+        "google_email": user.google_email
     }
 
 @zeus_router.post("/user/settings")
