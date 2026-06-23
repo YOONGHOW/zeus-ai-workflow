@@ -50,6 +50,12 @@ from dbconfig.db import (
     DbConn,
     UserTable,
     ChatSession,
+    ChatHistory,
+    ScheduledTask,
+    OcrCorrection,
+    TaskNotification,
+    TrackError,
+    WorkflowTask,
     get_db,
     save_to_history,
     log_error_to_db,
@@ -261,9 +267,27 @@ async def lifespan(app: FastAPI):
             conn.execute(text("ALTER TABLE client ADD COLUMN IF NOT EXISTS token_usage INTEGER DEFAULT 0;"))
             conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;"))
             conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS userid INTEGER;"))
-        print("[OK] Database schema updated: client and chat_sessions columns verified")
+            conn.execute(text("ALTER TABLE workflow_schedules ADD COLUMN IF NOT EXISTS userid INTEGER;"))
+            try:
+                conn.execute(text("ALTER TABLE client ADD COLUMN last_reset_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"))
+                print("Auto-migration: Added last_reset_date to client table.")
+            except Exception as e:
+                if "already exists" not in str(e).lower():
+                    print(f"Migration note: {e}")
+        print("[OK] Database schema updated: client, chat_sessions and workflow_schedules columns verified")
     except Exception as e:
         print(f"[Error] Failed to update schema dynamically: {e}")
+
+    try:
+        from dbconfig.db import TaskNotification
+        TaskNotification.__table__.create(bind=engine, checkfirst=True)
+        print("Auto-migration: Ensured task_notification table exists.")
+    except Exception as e:
+        print(f"TaskNotification migration error: {e}")
+
+    from workflow.scheduler import start_scheduler
+    start_scheduler()
+    
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -271,10 +295,10 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://zeus-ai-workflow.firebaseapp.com",
-        "https://zeus-ai-workflow.web.app"
-        #"http://127.0.0.1:8080",
-        #"http://localhost:5173",
+        #"https://zeus-ai-workflow.firebaseapp.com",
+        #"https://zeus-ai-workflow.web.app"
+        "http://127.0.0.1:8080",
+        "http://localhost:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -1504,32 +1528,197 @@ class ScheduleSyncRequest(BaseModel):
     payload_data: dict
     is_active: int
 
+class SaveWorkflowRequest(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = ""
+    nodes: list
+    connections: list
+    status: str
+    userid: int
+    scheduleFrequency: Optional[str] = None
+    scheduleTime: Optional[str] = None
+    scheduleDay: Optional[str] = None
+
+class DeleteWorkflowRequest(BaseModel):
+    id: str
+    userid: int
+
+@workflow_router.post("/save")
+async def save_workflow(payload: SaveWorkflowRequest, db: Session = Depends(get_db)):
+    try:
+        from dbconfig.db import WorkflowTask, UserTable
+        user = db.query(UserTable).filter(UserTable.userid == payload.userid).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        existing = db.query(WorkflowTask).filter(WorkflowTask.id == payload.id).first()
+        if existing:
+            if existing.userid != payload.userid:
+                raise HTTPException(status_code=403, detail="Not authorized to edit this workflow")
+            existing.name = payload.name
+            existing.description = payload.description
+            existing.nodes = payload.nodes
+            existing.connections = payload.connections
+            existing.status = payload.status
+            existing.schedule_frequency = payload.scheduleFrequency
+            existing.schedule_time = payload.scheduleTime
+            existing.schedule_day = payload.scheduleDay
+        else:
+            new_workflow = WorkflowTask(
+                id=payload.id,
+                name=payload.name,
+                description=payload.description,
+                nodes=payload.nodes,
+                connections=payload.connections,
+                status=payload.status,
+                schedule_frequency=payload.scheduleFrequency,
+                schedule_time=payload.scheduleTime,
+                schedule_day=payload.scheduleDay,
+                userid=payload.userid
+            )
+            db.add(new_workflow)
+        db.commit()
+        return {"status": "success"}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@workflow_router.get("/list")
+async def list_workflows(userid: int, db: Session = Depends(get_db)):
+    try:
+        from dbconfig.db import WorkflowTask
+        tasks = db.query(WorkflowTask).filter(WorkflowTask.userid == userid).order_by(WorkflowTask.updated_at.desc()).all()
+        return [
+            {
+                "id": t.id,
+                "name": t.name,
+                "description": t.description,
+                "nodes": t.nodes,
+                "connections": t.connections,
+                "status": t.status,
+                "createdAt": t.created_at.isoformat() if t.created_at else None,
+                "updatedAt": t.updated_at.isoformat() if t.updated_at else None,
+                "scheduleFrequency": t.schedule_frequency,
+                "scheduleTime": t.schedule_time,
+                "scheduleDay": t.schedule_day,
+            }
+            for t in tasks
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@workflow_router.post("/delete")
+async def delete_workflow(payload: DeleteWorkflowRequest, db: Session = Depends(get_db)):
+    try:
+        from dbconfig.db import WorkflowTask, ScheduledTask
+        workflow = db.query(WorkflowTask).filter(WorkflowTask.id == payload.id).first()
+        if not workflow:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        if workflow.userid != payload.userid:
+            raise HTTPException(status_code=403, detail="Not authorized to delete this workflow")
+            
+        db.query(ScheduledTask).filter(ScheduledTask.workflow_id == payload.id).delete()
+        db.delete(workflow)
+        db.commit()
+        return {"status": "success"}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
 @workflow_router.post("/schedule")
 async def api_sync_schedule(payload: ScheduleSyncRequest, db: Session = Depends(get_db)):
     try:
-        from dbconfig.db import ScheduledTask
+        from dbconfig.db import ScheduledTask, WorkflowTask
+        
+        # Verify workflow ownership if it exists
+        workflow = db.query(WorkflowTask).filter(WorkflowTask.id == payload.workflow_id).first()
+        userid = payload.payload_data.get("userid") or (workflow.userid if workflow else None)
+        
+        if workflow and userid and workflow.userid != userid:
+            raise HTTPException(status_code=403, detail="Not authorized to schedule this workflow")
+            
         existing = db.query(ScheduledTask).filter(ScheduledTask.workflow_id == payload.workflow_id).first()
         if existing:
             existing.cron_expression = payload.cron_expression
             existing.payload_data = payload.payload_data
             existing.is_active = payload.is_active
+            if userid:
+                existing.userid = userid
         else:
             new_schedule = ScheduledTask(
                 workflow_id=payload.workflow_id,
                 cron_expression=payload.cron_expression,
                 payload_data=payload.payload_data,
-                is_active=payload.is_active
+                is_active=payload.is_active,
+                userid=userid
             )
             db.add(new_schedule)
         db.commit()
         return {"status": "success"}
+    except HTTPException as he:
+        raise he
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+async def execute_and_log(payload: dict):
+    workflow_id = payload.get('workflow_id', 'manual')
+    workflow_name = payload.get('workflow_name', 'Manual Execution')
+    userid = payload.get('userid')
+    status = "success"
+    error_msg = ""
+    
+    try:
+        from workflow.autoTask import execute_workflow
+        import json
+        async for event in execute_workflow(payload):
+            try:
+                ev_data = json.loads(event.strip())
+                if ev_data.get("type") == "error":
+                    status = "failed"
+                    error_msg = ev_data.get("message", "Unknown error")
+            except Exception:
+                pass
+            yield event
+    except Exception as e:
+        status = "failed"
+        error_msg = str(e)
+        import json
+        yield json.dumps({"type": "error", "message": str(e)}) + "\n"
+        
+    if userid:
+        try:
+            from dbconfig.db import SessionLocal, TaskNotification, TrackError
+            db = SessionLocal()
+            notification = TaskNotification(
+                userid=userid,
+                workflow_id=workflow_id,
+                workflow_name=workflow_name,
+                status=status,
+                error_message=error_msg
+            )
+            db.add(notification)
+            if status == "failed":
+                new_error = TrackError(
+                    userid=userid,
+                    error_type="workflow_execution",
+                    error_message=error_msg,
+                    error_details=f"Workflow {workflow_id} ({workflow_name}) failed"
+                )
+                db.add(new_error)
+            db.commit()
+            db.close()
+        except Exception as log_err:
+            print(f"Failed to log notification/error: {log_err}")
+
 @workflow_router.post("/execute")
 async def api_execute_workflow(payload: dict):
-    return StreamingResponse(execute_workflow(payload), media_type="text/event-stream")
+    return StreamingResponse(execute_and_log(payload), media_type="text/event-stream")
 
 @workflow_router.post("/validate")
 async def api_validate_workflow(payload: dict):
@@ -1579,140 +1768,7 @@ async def mark_notifications_read(payload: dict, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
-import datetime
-
-def cron_matches(cron_expr: str, dt: datetime.datetime) -> bool:
-    try:
-        parts = cron_expr.strip().split()
-        if len(parts) != 5:
-            return False
-        
-        minute_part, hour_part, dom_part, month_part, dow_part = parts
-        
-        if minute_part != '*':
-            if int(minute_part) != dt.minute:
-                return False
-                
-        if hour_part != '*':
-            if int(hour_part) != dt.hour:
-                return False
-                
-        if dom_part != '*':
-            if int(dom_part) != dt.day:
-                return False
-                
-        if month_part != '*':
-            if int(month_part) != dt.month:
-                return False
-                
-        if dow_part != '*':
-            py_weekday = dt.weekday()
-            cron_weekday = py_weekday + 1
-            
-            allowed_dows = []
-            for item in dow_part.split(','):
-                item = item.strip().lower()
-                if item == '*':
-                    return True
-                elif item in ('sun', 'sunday', '7', '0'):
-                    allowed_dows.extend([0, 7])
-                elif item in ('mon', 'monday', '1'):
-                    allowed_dows.append(1)
-                elif item in ('tue', 'tuesday', '2'):
-                    allowed_dows.append(2)
-                elif item in ('wed', 'wednesday', '3'):
-                    allowed_dows.append(3)
-                elif item in ('thu', 'thursday', '4'):
-                    allowed_dows.append(4)
-                elif item in ('fri', 'friday', '5'):
-                    allowed_dows.append(5)
-                elif item in ('sat', 'saturday', '6'):
-                    allowed_dows.append(6)
-                else:
-                    try:
-                        allowed_dows.append(int(item))
-                    except ValueError:
-                        pass
-            
-            if cron_weekday not in allowed_dows:
-                if py_weekday == 6 and (0 in allowed_dows or 7 in allowed_dows):
-                    pass
-                else:
-                    return False
-                    
-        return True
-    except Exception as e:
-        print(f"Error matching cron: {e}")
-        return False
-
-async def run_scheduled_workflow_bg(payload_data: dict):
-    workflow_id = payload_data.get('workflow_id') or 'unnamed'
-    workflow_name = "Scheduled Workflow"  # A default name, ideally we pass it inside payload_data
-    userid = payload_data.get("userid")
-    
-    status = "success"
-    error_msg = ""
-    
-    try:
-        from workflow.autoTask import execute_workflow
-        print(f"[Scheduled Task] Starting workflow: {workflow_id}")
-        async for event in execute_workflow(payload_data):
-            try:
-                ev_data = json.loads(event.strip())
-                if ev_data.get("type") == "error":
-                    status = "failed"
-                    error_msg = ev_data.get("message", "Unknown error")
-            except Exception:
-                pass
-        print(f"[Scheduled Task] Finished workflow: {workflow_id}")
-    except Exception as e:
-        print(f"[Scheduled Task] Error running workflow {workflow_id}: {e}")
-        status = "failed"
-        error_msg = str(e)
-        
-    try:
-        from dbconfig.db import SessionLocal, TaskNotification
-        db = SessionLocal()
-        notification = TaskNotification(
-            userid=userid,
-            workflow_id=workflow_id,
-            workflow_name=workflow_name,
-            status=status,
-            error_message=error_msg
-        )
-        db.add(notification)
-        db.commit()
-        db.close()
-    except Exception as log_err:
-        print(f"[Scheduled Task] Failed to log notification: {log_err}")
-
-async def cron_scheduler_loop():
-    last_run_minute = None
-    print("[OK] Starting cron scheduler loop...")
-    while True:
-        await asyncio.sleep(10)
-        
-        now = datetime.datetime.now()
-        current_minute = (now.year, now.month, now.day, now.hour, now.minute)
-        
-        if last_run_minute == current_minute:
-            continue
-            
-        last_run_minute = current_minute
-        
-        db = SessionLocal()
-        try:
-            from dbconfig.db import ScheduledTask
-            tasks = db.query(ScheduledTask).filter(ScheduledTask.is_active == 1).all()
-            for t in tasks:
-                if cron_matches(t.cron_expression, now):
-                    print(f"[Scheduled Task] Triggered workflow {t.workflow_id} at {now}")
-                    asyncio.create_task(run_scheduled_workflow_bg(t.payload_data))
-        except Exception as e:
-            print(f"Cron scheduler error: {e}")
-        finally:
-            db.close()
+# Cron scheduler logic refactored to py_script/workflow/scheduler.py
 
 from auth.googleAuth import google_auth_router
 
@@ -1721,26 +1777,7 @@ app.include_router(zeus_router)
 app.include_router(google_auth_router)
 app.include_router(workflow_router)
 
-@app.on_event("startup")
-async def startup_event():
-    try:
-        from dbconfig.db import engine, TaskNotification
-        from sqlalchemy import text
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE client ADD COLUMN last_reset_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"))
-            print("Auto-migration: Added last_reset_date to client table.")
-    except Exception as e:
-        if "already exists" not in str(e).lower():
-            print(f"Migration note: {e}")
-            
-    try:
-        from dbconfig.db import engine, TaskNotification
-        TaskNotification.__table__.create(bind=engine, checkfirst=True)
-        print("Auto-migration: Ensured task_notification table exists.")
-    except Exception as e:
-        print(f"TaskNotification migration error: {e}")
-
-    asyncio.create_task(cron_scheduler_loop())
+# Startup events migrated to FastAPI lifespan context manager
 
 if __name__ == "__main__":
     import uvicorn
