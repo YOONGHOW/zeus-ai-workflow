@@ -163,6 +163,24 @@ class ScheduledTask(Base):
     is_active = Column(Integer, default=1)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+    userid = Column(Integer, ForeignKey("client.userid"), index=True, nullable=True)
+
+class WorkflowTask(Base):
+    __tablename__ = "workflow_tasks"
+    
+    id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    nodes = Column(JSON, nullable=False)
+    connections = Column(JSON, nullable=False)
+    status = Column(String, default="finish")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+    schedule_frequency = Column(String, nullable=True)
+    schedule_time = Column(String, nullable=True)
+    schedule_day = Column(String, nullable=True)
+    userid = Column(Integer, ForeignKey("client.userid"), index=True, nullable=False)
+
 
 class OcrCorrection(Base):
     __tablename__ = "ocr_corrections"

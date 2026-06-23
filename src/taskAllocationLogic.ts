@@ -46,10 +46,7 @@ const TOOL_DEFS: Record<string, { label: string; icon: string; color: string }> 
     report: { label: 'Report (PDF)', icon: 'fa-solid fa-file-pdf', color: '#10b981' },
 };
 
-// Flow-control node types that only have one port and no prompt body
 const FLOW_NODES = new Set(['start', 'end']);
-
-// ── Storage helpers ────────────────────────────────────────────
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || (window as any).BASE_URL || 'http://127.0.0.1:8080';
 
 function getStorageKey(): string {
@@ -67,37 +64,132 @@ function getStorageKey(): string {
     return 'zeus_tasks';
 }
 
-function loadTasks(): Task[] {
+let allTasks: Task[] = [];
+
+async function loadTasksFromDb(): Promise<Task[]> {
+    let userid = null;
+    const userStr = localStorage.getItem('zeusUser');
+    if (userStr) {
+        try {
+            const user = JSON.parse(userStr);
+            userid = user.userid;
+        } catch (e) { }
+    }
+    if (!userid) {
+        allTasks = [];
+        return [];
+    }
+
+    try {
+        const res = await fetch(`${BASE_URL}/api/workflow/list?userid=${userid}`);
+        if (res.ok) {
+            allTasks = await res.json();
+        } else {
+            console.error("Failed to load workflows from db:", res.statusText);
+            allTasks = [];
+        }
+    } catch (e) {
+        console.error("Error loading workflows from db:", e);
+        allTasks = [];
+    }
+
+    // Migration logic: if we have local storage tasks, sync them to the database
     try {
         const key = getStorageKey();
-        let raw = localStorage.getItem(key);
-
-        // Migrate legacy shared workflows to user-specific storage
-        if (!raw && key !== 'zeus_tasks') {
-            const legacyRaw = localStorage.getItem('zeus_tasks');
-            if (legacyRaw) {
-                localStorage.setItem(key, legacyRaw);
-                raw = legacyRaw;
-                localStorage.removeItem('zeus_tasks');
-                console.log(`Migrated legacy workflows to ${key}`);
+        const localRaw = localStorage.getItem(key);
+        if (localRaw) {
+            const localTasks: Task[] = JSON.parse(localRaw);
+            if (localTasks && localTasks.length > 0) {
+                console.log(`Found ${localTasks.length} legacy workflows in localStorage. Migrating to database...`);
+                for (const t of localTasks) {
+                    if (!allTasks.some(dbT => dbT.id === t.id)) {
+                        await saveTaskToDb(t);
+                        allTasks.push(t);
+                    }
+                }
+                localStorage.removeItem(key);
+                console.log("Migration complete. Removed workflows from localStorage.");
             }
         }
+    } catch (err) {
+        console.error("Error migrating local tasks to database:", err);
+    }
 
-        const tasks: Task[] = raw ? JSON.parse(raw) : [];
-        // Migrate legacy statuses
-        tasks.forEach(t => {
-            if ((t.status as any) === 'draft' || (t.status as any) === 'stopped') {
-                t.status = 'finish';
-            }
+    // Sort by updatedAt desc
+    allTasks.sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime());
+    return allTasks;
+}
+
+async function saveTaskToDb(task: Task) {
+    let userid = null;
+    const userStr = localStorage.getItem('zeusUser');
+    if (userStr) {
+        try {
+            const user = JSON.parse(userStr);
+            userid = user.userid;
+        } catch (e) { }
+    }
+    if (!userid) return;
+    try {
+        const payload = {
+            id: task.id,
+            name: task.name,
+            description: task.description || "",
+            nodes: task.nodes,
+            connections: task.connections,
+            status: task.status,
+            userid: userid,
+            scheduleFrequency: task.scheduleFrequency,
+            scheduleTime: task.scheduleTime,
+            scheduleDay: task.scheduleDay
+        };
+        const res = await fetch(`${BASE_URL}/api/workflow/save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
-        return tasks;
+        if (!res.ok) {
+            console.error("Failed to save workflow to db:", res.statusText);
+        }
     } catch (e) {
-        return [];
+        console.error("Error saving workflow to db:", e);
     }
 }
 
+async function deleteTaskFromDb(id: string) {
+    let userid = null;
+    const userStr = localStorage.getItem('zeusUser');
+    if (userStr) {
+        try {
+            const user = JSON.parse(userStr);
+            userid = user.userid;
+        } catch (e) { }
+    }
+    if (!userid) return;
+    try {
+        const res = await fetch(`${BASE_URL}/api/workflow/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, userid })
+        });
+        if (!res.ok) {
+            console.error("Failed to delete workflow from db:", res.statusText);
+        }
+    } catch (e) {
+        console.error("Error deleting workflow from db:", e);
+    }
+}
+
+function loadTasks(): Task[] {
+    return allTasks;
+}
+
 function saveTasks(tasks: Task[]) {
+    allTasks = tasks;
     localStorage.setItem(getStorageKey(), JSON.stringify(tasks));
+    for (const t of tasks) {
+        saveTaskToDb(t);
+    }
 }
 
 function genId(): string {
@@ -177,8 +269,8 @@ function getDeterministicWorkflowId(workflowData: any): string {
 // ================================================================
 //  EXTERNAL API — called by Chat logic
 // ================================================================
-export function loadGeneratedWorkflow(workflowData: any) {
-    const tasks = loadTasks();
+export async function loadGeneratedWorkflow(workflowData: any) {
+    const tasks = await loadTasksFromDb();
     const targetId = workflowData.id || getDeterministicWorkflowId(workflowData);
 
     // Check if task already exists
@@ -221,7 +313,7 @@ export function loadGeneratedWorkflow(workflowData: any) {
 // ================================================================
 //  PUBLIC ENTRY — called after partial HTML is injected
 // ================================================================
-export function initializeTaskAllocation() {
+export async function initializeTaskAllocation() {
     // Grab DOM refs
     listingView = document.getElementById('taListingView')!;
     editorView = document.getElementById('taEditorView')!;
@@ -363,6 +455,9 @@ export function initializeTaskAllocation() {
 
     // Keyboard events
     document.addEventListener('keydown', handleKeyDown);
+
+    // Load workflows from database
+    await loadTasksFromDb();
 
     // Initial render
     if ((window as any).pendingWorkflowOpenId) {
@@ -612,6 +707,8 @@ async function runTask(id: string) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                workflow_id: task.id,
+                workflow_name: task.name,
                 nodes: task.nodes,
                 connections: task.connections,
                 userid: userid
@@ -706,6 +803,7 @@ async function deleteTask(id: string) {
 
     const updated = tasks.filter(t => t.id !== id);
     saveTasks(updated);
+    await deleteTaskFromDb(id);
     renderTaskList();
 
     if (typeof (window as any).showZeusNotification === 'function') {
