@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="/css/ocrSys.css" />
     <link rel="stylesheet" href="/css/darkmode.css" />
     <link rel="stylesheet" href="/css/notification.css" />
+    <link rel="stylesheet" href="/css/inbox.css" />
     <link rel="stylesheet" href="/css/auth.css" />
     <link rel="stylesheet" href="/css/taskAllocation.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -37,6 +38,21 @@
             <span class="logo">Zeus AI Agent</span>
         </div>
         <div class="header-right">
+            <div style="position: relative;">
+                <button class="icon-btn tooltip-container" id="inboxToggle" title="Notifications" style="display:flex;">
+                    <i class="fa-solid fa-inbox"></i>
+                    <span id="inboxBadge" class="inbox-badge" style="display:none;"></span>
+                </button>
+                <div id="inboxDropdown" class="inbox-dropdown" style="display:none;">
+                    <div class="inbox-dropdown-header">
+                        <h4>Today's Tasks</h4>
+                        <button id="viewAllNotifsBtn">View More</button>
+                    </div>
+                    <div id="inboxDropdownList" class="inbox-dropdown-list">
+                        <!-- Items injected by JS -->
+                    </div>
+                </div>
+            </div>
             <button class="icon-btn tooltip-container" id="dbConfigToggle" title="Connections" style="display:flex;">
                 <i class="fa-solid fa-link"></i>
             </button>
@@ -233,6 +249,35 @@
     </div>
 
 
+
+    <!-- Notifications Modal -->
+    <div class="db-modal-overlay" id="notifModalOverlay"></div>
+    <div class="db-modal" id="notifModalPanel" style="max-width: 800px;">
+        <div class="db-modal-body" style="padding: 24px;">
+            <button class="db-modal-close" id="notifModalClose"><i class="fa-solid fa-xmark"></i></button>
+            <h3 style="margin-top: 0;">All Notifications</h3>
+            <div class="notif-table-container">
+                <table class="notif-table" id="notifTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Task Name</th>
+                            <th>Status</th>
+                            <th>Error Message</th>
+                        </tr>
+                    </thead>
+                    <tbody id="notifTableBody">
+                        <!-- Rows injected by JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="notif-pagination" id="notifPagination">
+                <button id="notifPrevPage" disabled><i class="fa-solid fa-chevron-left"></i> Prev</button>
+                <span id="notifPageInfo">Page 1 of 1</span>
+                <button id="notifNextPage" disabled>Next <i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </div>
 
     <div class="main-container">
         <aside class="sidebar" id="sidebar">

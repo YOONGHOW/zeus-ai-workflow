@@ -174,6 +174,18 @@ class OcrCorrection(Base):
     corrected_value = Column(String, nullable=False)
     corrected_at = Column(DateTime(timezone=True), server_default=func.now())
 
+class TaskNotification(Base):
+    __tablename__ = "task_notification"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    userid = Column(Integer, ForeignKey("client.userid"), nullable=True, index=True)
+    workflow_id = Column(String, nullable=False)
+    workflow_name = Column(String, nullable=False)
+    status = Column(String, nullable=False) # 'success' or 'failed'
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    is_read = Column(Integer, default=0)
+
 def get_db():
     db = SessionLocal()
     try:

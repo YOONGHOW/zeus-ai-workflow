@@ -105,6 +105,198 @@ export function showConfirm(message: string, confirmText = "Confirm", cancelText
 
 (window as any).showZeusConfirm = showConfirm;
 
+export function initializeInboxNotifications() {
+    const inboxToggle = document.getElementById('inboxToggle');
+    const inboxDropdown = document.getElementById('inboxDropdown');
+    const inboxBadge = document.getElementById('inboxBadge');
+    const inboxDropdownList = document.getElementById('inboxDropdownList');
+    
+    const notifModalOverlay = document.getElementById('notifModalOverlay');
+    const notifModalPanel = document.getElementById('notifModalPanel');
+    const notifModalClose = document.getElementById('notifModalClose');
+    const viewAllNotifsBtn = document.getElementById('viewAllNotifsBtn');
+    
+    const notifTableBody = document.getElementById('notifTableBody');
+    const notifPrevPage = document.getElementById('notifPrevPage') as HTMLButtonElement;
+    const notifNextPage = document.getElementById('notifNextPage') as HTMLButtonElement;
+    const notifPageInfo = document.getElementById('notifPageInfo');
+
+    let notifications: any[] = [];
+    let currentPage = 1;
+    const itemsPerPage = 8;
+    
+    async function fetchNotifications() {
+        try {
+            const userStr = localStorage.getItem('zeusUser');
+            if (!userStr) return;
+            const user = JSON.parse(userStr);
+            const baseUrl = (window as any).BASE_URL || import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8080';
+            
+            const res = await fetch(`${baseUrl}/api/notifications?userid=${user.userid}`);
+            if (res.ok) {
+                notifications = await res.json();
+                updateInboxDropdown();
+                if (notifModalPanel && notifModalPanel.classList.contains('active')) {
+                    renderModalTable();
+                }
+            }
+        } catch (e) {
+            console.error("Failed to fetch notifications", e);
+        }
+    }
+
+    async function markAsRead() {
+        try {
+            const userStr = localStorage.getItem('zeusUser');
+            if (!userStr) return;
+            const user = JSON.parse(userStr);
+            const baseUrl = (window as any).BASE_URL || import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8080';
+            
+            await fetch(`${baseUrl}/api/notifications/read`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userid: user.userid })
+            });
+            // Update local state immediately
+            notifications.forEach(n => n.is_read = 1);
+            if (inboxBadge) inboxBadge.style.display = 'none';
+        } catch (e) {
+            console.error("Failed to mark notifications as read", e);
+        }
+    }
+
+    function updateInboxDropdown() {
+        if (!inboxDropdownList || !inboxBadge) return;
+        
+        const unreadCount = notifications.filter(n => n.is_read === 0).length;
+        if (unreadCount > 0) {
+            inboxBadge.style.display = 'block';
+        } else {
+            inboxBadge.style.display = 'none';
+        }
+        
+        // Show today's notifications only in dropdown
+        const todayStr = new Date().toDateString();
+        const todaysNotifs = notifications.filter(n => new Date(n.created_at).toDateString() === todayStr);
+        
+        if (todaysNotifs.length === 0) {
+            inboxDropdownList.innerHTML = '<div class="inbox-empty">No tasks executed today.</div>';
+            return;
+        }
+        
+        inboxDropdownList.innerHTML = todaysNotifs.slice(0, 10).map(n => `
+            <div class="inbox-item">
+                <div class="inbox-item-header">
+                    <span>${new Date(n.created_at).toLocaleTimeString()}</span>
+                    <span class="inbox-item-status ${n.status === 'success' ? 'success' : 'failed'}">
+                        ${n.status === 'success' ? '<i class="fa-solid fa-check"></i> Success' : '<i class="fa-solid fa-xmark"></i> Failed'}
+                    </span>
+                </div>
+                <div class="inbox-item-name">${n.workflow_name || n.workflow_id}</div>
+                ${n.error_message ? `<div style="font-size: 11px; color: #ef4444; margin-top:2px;">${n.error_message}</div>` : ''}
+            </div>
+        `).join('');
+    }
+
+    function renderModalTable() {
+        if (!notifTableBody || !notifPageInfo || !notifPrevPage || !notifNextPage) return;
+        
+        const totalPages = Math.ceil(notifications.length / itemsPerPage) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+        
+        notifPageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+        notifPrevPage.disabled = currentPage === 1;
+        notifNextPage.disabled = currentPage === totalPages;
+        
+        const start = (currentPage - 1) * itemsPerPage;
+        const pageItems = notifications.slice(start, start + itemsPerPage);
+        
+        if (pageItems.length === 0) {
+            notifTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px;">No notifications found.</td></tr>';
+            return;
+        }
+        
+        notifTableBody.innerHTML = pageItems.map(n => {
+            const dt = new Date(n.created_at);
+            const dateStr = `${dt.toLocaleDateString()} ${dt.toLocaleTimeString()}`;
+            return `
+                <tr>
+                    <td style="white-space: nowrap;">${dateStr}</td>
+                    <td>${n.workflow_name || n.workflow_id}</td>
+                    <td style="color: ${n.status === 'success' ? '#22c55e' : '#ef4444'}; font-weight:500;">
+                        ${n.status === 'success' ? 'Success' : 'Failed'}
+                    </td>
+                    <td style="color: #ef4444; font-size:12px;">${n.error_message || ''}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // Event Listeners
+    if (inboxToggle && inboxDropdown) {
+        inboxToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isVisible = inboxDropdown.style.display === 'block';
+            inboxDropdown.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) {
+                markAsRead();
+            }
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!inboxDropdown.contains(e.target as Node) && !inboxToggle.contains(e.target as Node)) {
+                inboxDropdown.style.display = 'none';
+            }
+        });
+    }
+
+    function openModal() {
+        if (inboxDropdown) inboxDropdown.style.display = 'none';
+        if (notifModalPanel && notifModalOverlay) {
+            notifModalPanel.classList.add('active');
+            notifModalOverlay.classList.add('active');
+            currentPage = 1;
+            renderModalTable();
+            markAsRead();
+        }
+    }
+    
+    function closeModal() {
+        if (notifModalPanel && notifModalOverlay) {
+            notifModalPanel.classList.remove('active');
+            notifModalOverlay.classList.remove('active');
+        }
+    }
+
+    if (viewAllNotifsBtn) viewAllNotifsBtn.addEventListener('click', openModal);
+    if (notifModalClose) notifModalClose.addEventListener('click', closeModal);
+    if (notifModalOverlay) notifModalOverlay.addEventListener('click', closeModal);
+    
+    if (notifPrevPage) {
+        notifPrevPage.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderModalTable();
+            }
+        });
+    }
+    
+    if (notifNextPage) {
+        notifNextPage.addEventListener('click', () => {
+            const totalPages = Math.ceil(notifications.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderModalTable();
+            }
+        });
+    }
+
+    // Initial fetch and start polling every 30 seconds
+    fetchNotifications();
+    setInterval(fetchNotifications, 30000);
+}
+
 export function showPrompt(message: string, defaultValue = "", confirmText = "Confirm", cancelText = "Cancel"): Promise<string | null> {
     return new Promise((resolve) => {
         // 1. Create overlay

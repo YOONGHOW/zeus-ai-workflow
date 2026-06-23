@@ -11,4 +11,9 @@ import { initializeDocumentsPage } from './documentLogic';
 (window as any).initializeZeusChat = initializeZeusChat;
 (window as any).initializeTaskAllocation = initializeTaskAllocation;
 (window as any).loadGeneratedWorkflow = loadGeneratedWorkflow;
-(window as any).initializeDocumentsPage = initializeDocumentsPage;
+(window as any).initializeDocumentsPage = initializeDocumentsPage;
+
+import { initializeInboxNotifications } from './notification';
+document.addEventListener('DOMContentLoaded', () => {
+    initializeInboxNotifications();
+});

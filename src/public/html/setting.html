@@ -110,7 +110,7 @@
                             <div class="sm-card-header">
                                 <h4>Google Account</h4>
                                 <p>Connect your Google account to enable Gmail and Google Calendar.</p>
-                                <div id="googleAccountEmailDisplay" style="font-size:12px; color:#10b981; font-weight:500; margin-top:4px; display:none;"></div>
+                                <div id="googleAccountEmailDisplay" style="font-size:12px; color:#10b981; font-weight:500; margin-top:4px; display:${data.google_connected && data.google_email ? 'block' : 'none'};">${data.google_connected && data.google_email ? 'Connected as: ' + data.google_email : ''}</div>
                             </div>
 
                             <!-- Connect row -->
@@ -248,6 +248,9 @@
                     document.getElementById('calendarToggle')?.addEventListener('change', e => {
                         updateSettings({ calendar_enabled: e.target.checked ? 1 : 0 });
                     });
+
+                    // Initial UI update to display email address and sync state
+                    updateUI(data);
 
                 } catch (err) {
                     modalBody.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;"><i class="fa-solid fa-triangle-exclamation fa-2x" style="margin-bottom:12px;display:block;"></i><p>Failed to load preferences.</p></div>';
