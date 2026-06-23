@@ -253,11 +253,22 @@ export function initializeOCRPage() {
             selectedFields.forEach(field => {
                 const fieldData = currentData[field];
                 if (fieldData && fieldData.box) {
-                    const pageIdx = fieldData.page !== undefined ? fieldData.page : 0;
-                    const targetCanvas = pageCanvases[pageIdx];
-                    if (targetCanvas) {
-                        const ctx = targetCanvas.getContext('2d');
-                        if (ctx) drawBoundingBox(ctx, fieldData.box, field, "#e63946");
+                    if (Array.isArray(fieldData.box) && fieldData.box.length > 0 && Array.isArray(fieldData.box[0])) {
+                        fieldData.box.forEach((singleBox: number[], idx: number) => {
+                            const pageIdx = (Array.isArray(fieldData.page) ? fieldData.page[idx] : fieldData.page) ?? 0;
+                            const targetCanvas = pageCanvases[pageIdx];
+                            if (targetCanvas) {
+                                const ctx = targetCanvas.getContext('2d');
+                                if (ctx) drawBoundingBox(ctx, singleBox, field, "#e63946");
+                            }
+                        });
+                    } else {
+                        const pageIdx = fieldData.page !== undefined ? fieldData.page : 0;
+                        const targetCanvas = pageCanvases[pageIdx];
+                        if (targetCanvas) {
+                            const ctx = targetCanvas.getContext('2d');
+                            if (ctx) drawBoundingBox(ctx, fieldData.box, field, "#e63946");
+                        }
                     }
                 }
             });
@@ -382,11 +393,22 @@ export function initializeOCRPage() {
         selectedFields.forEach(field => {
             const fieldData = currentData[field];
             if (fieldData && fieldData.box) {
-                const pageIdx = fieldData.page !== undefined ? fieldData.page : 0;
-                const targetCanvas = pageCanvases[pageIdx];
-                if (targetCanvas) {
-                    const ctx = targetCanvas.getContext('2d');
-                    if (ctx) drawBoundingBox(ctx, fieldData.box, field, "#e63946");
+                if (Array.isArray(fieldData.box) && fieldData.box.length > 0 && Array.isArray(fieldData.box[0])) {
+                    fieldData.box.forEach((singleBox: number[], idx: number) => {
+                        const pageIdx = (Array.isArray(fieldData.page) ? fieldData.page[idx] : fieldData.page) ?? 0;
+                        const targetCanvas = pageCanvases[pageIdx];
+                        if (targetCanvas) {
+                            const ctx = targetCanvas.getContext('2d');
+                            if (ctx) drawBoundingBox(ctx, singleBox, field, "#e63946");
+                        }
+                    });
+                } else {
+                    const pageIdx = fieldData.page !== undefined ? fieldData.page : 0;
+                    const targetCanvas = pageCanvases[pageIdx];
+                    if (targetCanvas) {
+                        const ctx = targetCanvas.getContext('2d');
+                        if (ctx) drawBoundingBox(ctx, fieldData.box, field, "#e63946");
+                    }
                 }
             }
         });
@@ -566,11 +588,23 @@ export function initializeOCRPage() {
         selectedFields.forEach(field => {
             const fieldData = currentData[field];
             if (fieldData && fieldData.box) {
-                const pageIdx = fieldData.page !== undefined ? fieldData.page : 0;
-                const targetCanvas = pageCanvases[pageIdx];
-                if (targetCanvas) {
-                    const ctx = targetCanvas.getContext('2d');
-                    if (ctx) drawBoundingBox(ctx, fieldData.box, field, "#e63946");
+                // Check if we have multiple boxes (nested arrays/dicts)
+                if (Array.isArray(fieldData.box) && fieldData.box.length > 0 && Array.isArray(fieldData.box[0])) {
+                    fieldData.box.forEach((singleBox: number[], idx: number) => {
+                        const pageIdx = (Array.isArray(fieldData.page) ? fieldData.page[idx] : fieldData.page) ?? 0;
+                        const targetCanvas = pageCanvases[pageIdx];
+                        if (targetCanvas) {
+                            const ctx = targetCanvas.getContext('2d');
+                            if (ctx) drawBoundingBox(ctx, singleBox, field, "#e63946");
+                        }
+                    });
+                } else {
+                    const pageIdx = fieldData.page !== undefined ? fieldData.page : 0;
+                    const targetCanvas = pageCanvases[pageIdx];
+                    if (targetCanvas) {
+                        const ctx = targetCanvas.getContext('2d');
+                        if (ctx) drawBoundingBox(ctx, fieldData.box, field, "#e63946");
+                    }
                 }
             }
         });
