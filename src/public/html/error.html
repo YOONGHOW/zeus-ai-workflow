@@ -105,62 +105,6 @@
             }
         }
 
-        /* Illustration / Icon */
-        .icon-wrapper {
-            margin-bottom: 32px;
-            position: relative;
-            display: inline-block;
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .icon-wrapper::after {
-            content: '';
-            position: absolute;
-            inset: -10px;
-            border-radius: 50%;
-            border: 1.5px dashed rgba(139, 92, 246, 0.2);
-            animation: rotateDashed 20s linear infinite;
-        }
-
-        @keyframes rotateDashed {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        .icon-wrapper i {
-            font-size: 54px;
-            background: var(--btn-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: pulseIcon 2s ease-in-out infinite;
-        }
-
-        @keyframes pulseIcon {
-
-            0%,
-            100% {
-                transform: scale(1);
-                filter: drop-shadow(0 0 0px rgba(139, 92, 246, 0));
-            }
-
-            50% {
-                transform: scale(1.08);
-                filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.5));
-            }
-        }
-
         /* Text Content */
         .error-code {
             font-size: 14px;
