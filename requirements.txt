@@ -26,5 +26,6 @@ python-multipart
 fpdf2
 
 jinja2
-playwright
+matplotlib
 weasyprint
+

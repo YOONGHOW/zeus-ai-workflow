@@ -173,6 +173,33 @@
 
     <script type="module">
         const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8080";
+
+        // --- GLOBAL NETWORK & SERVER HEALTH MONITORING ---
+        const originalFetch = window.fetch;
+        window.fetch = async function(...args) {
+            try {
+                return await originalFetch(...args);
+            } catch (error) {
+                if (!navigator.onLine) {
+                    window.location.href = '/src/public/html/error.html?type=offline';
+                } else {
+                    const urlString = typeof args[0] === 'string' ? args[0] : (args[0] instanceof Request ? args[0].url : '');
+                    if (urlString.includes(BASE_URL) || urlString.startsWith('/api/') || urlString.startsWith('/auth/') || urlString.startsWith('/zeus/')) {
+                        window.location.href = '/src/public/html/error.html?type=server_offline';
+                    }
+                }
+                throw error;
+            }
+        };
+
+        window.addEventListener('offline', () => {
+            window.location.href = '/src/public/html/error.html?type=offline';
+        });
+
+        if (!navigator.onLine) {
+            window.location.href = '/src/public/html/error.html?type=offline';
+        }
+
         // --- AUTH CHECK ---
         (function () {
             try {
