@@ -92,7 +92,7 @@ export function initializeZeusChat() {
     const apiCreateNew = document.getElementById('apiCreateNew') as HTMLButtonElement;
     const apiConnListContainer = document.getElementById('apiConnList') as HTMLDivElement;
     const apiNameInput = document.getElementById('apiName') as HTMLInputElement;
-    const apiMethodInput = document.getElementById('apiMethod') as HTMLSelectElement;
+    const apiMethodInput = document.getElementById('apiMethod') as HTMLInputElement;
     const apiUrlInput = document.getElementById('apiUrl') as HTMLInputElement;
     const apiKeyInput = document.getElementById('apiKey') as HTMLInputElement;
     const apiParamsInput = document.getElementById('apiParams') as HTMLTextAreaElement;
@@ -790,7 +790,12 @@ export function initializeZeusChat() {
 
     if (apiCreateNew && contentApi) {
         apiCreateNew.onclick = () => {
-            openApiForm();
+            try {
+                openApiForm();
+            } catch (e: any) {
+                console.error("Error opening API form:", e);
+                showNotification("Error opening form: " + e.message, "error");
+            }
         };
     }
 
@@ -802,6 +807,14 @@ export function initializeZeusChat() {
     }
 
     function openApiForm(api?: any) {
+        if (!apiNameInput || !apiMethodInput || !apiUrlInput || !apiKeyInput || !apiParamsInput || !apiDescInput) {
+            console.error("Form input elements are missing!", {
+                apiNameInput, apiMethodInput, apiUrlInput, apiKeyInput, apiParamsInput, apiDescInput
+            });
+            showNotification("Form elements are missing from the page. Please refresh.", "error");
+            return;
+        }
+
         if (contentApi) {
             contentApi.classList.add('show-form');
         }
@@ -854,8 +867,8 @@ export function initializeZeusChat() {
                 description: apiDescInput.value.trim()
             };
 
-            if (!payload.name || !payload.api_url) {
-                showNotification("API Name and URL are required.", "error");
+            if (!payload.name || !payload.api_url || !payload.description) {
+                showNotification("API Name, URL, and Description are required.", "error");
                 return;
             }
 

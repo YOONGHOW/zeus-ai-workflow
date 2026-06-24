@@ -691,6 +691,26 @@ function saveCurrentTaskData() {
 }
 
 async function runCurrentTask() {
+    const dummyTask: Task = {
+        id: editingTaskId || '',
+        name: '',
+        description: '',
+        nodes: currentNodes,
+        connections: currentConnections,
+        status: 'finish',
+        createdAt: '',
+        updatedAt: ''
+    };
+    const workflowVal = validateWorkflowConnections(dummyTask);
+    if (!workflowVal.isValid) {
+        if (typeof (window as any).showZeusNotification === 'function') {
+            (window as any).showZeusNotification(workflowVal.message, 'error');
+        } else {
+            alert(workflowVal.message);
+        }
+        return;
+    }
+
     const isValid = await validateGoogleIntegration();
     if (!isValid) return;
 
@@ -1048,6 +1068,83 @@ async function validateTaskIntegrations(task: Task): Promise<boolean> {
     return true;
 }
 
+function validateWorkflowConnections(task: Task): { isValid: boolean; message: string } {
+    const nodes = task.nodes || [];
+    const connections = task.connections || [];
+
+    if (nodes.length === 0) {
+        return { isValid: false, message: "Workflow cannot be empty. Please add nodes." };
+    }
+
+    const startNodes = nodes.filter(n => n.type === 'start');
+    const endNodes = nodes.filter(n => n.type === 'end');
+
+    if (startNodes.length === 0) {
+        return { isValid: false, message: "Workflow must contain a Start node." };
+    }
+    if (endNodes.length === 0) {
+        return { isValid: false, message: "Workflow must contain an End node." };
+    }
+
+    const adjForward = new Map<string, string[]>();
+    const adjBackward = new Map<string, string[]>();
+
+    for (const node of nodes) {
+        adjForward.set(node.id, []);
+        adjBackward.set(node.id, []);
+    }
+
+    for (const conn of connections) {
+        if (adjForward.has(conn.fromNodeId) && adjForward.has(conn.toNodeId)) {
+            adjForward.get(conn.fromNodeId)!.push(conn.toNodeId);
+            adjBackward.get(conn.toNodeId)!.push(conn.fromNodeId);
+        }
+    }
+
+    function getReachable(startIds: string[], adj: Map<string, string[]>): Set<string> {
+        const visited = new Set<string>();
+        const queue: string[] = [...startIds];
+        for (const id of startIds) {
+            visited.add(id);
+        }
+
+        while (queue.length > 0) {
+            const current = queue.shift()!;
+            const neighbors = adj.get(current) || [];
+            for (const neighbor of neighbors) {
+                if (!visited.has(neighbor)) {
+                    visited.add(neighbor);
+                    queue.push(neighbor);
+                }
+            }
+        }
+        return visited;
+    }
+
+    const startIds = startNodes.map(n => n.id);
+    const reachableFromStart = getReachable(startIds, adjForward);
+
+    const endIds = endNodes.map(n => n.id);
+    const canReachEnd = getReachable(endIds, adjBackward);
+
+    for (const node of nodes) {
+        if (!reachableFromStart.has(node.id)) {
+            return { 
+                isValid: false, 
+                message: `Validation Error: Node "${node.label || node.type}" is not connected to the path from Start.` 
+            };
+        }
+        if (!canReachEnd.has(node.id)) {
+            return { 
+                isValid: false, 
+                message: `Validation Error: Node "${node.label || node.type}" does not have a path to the End node.` 
+            };
+        }
+    }
+
+    return { isValid: true, message: "" };
+}
+
 async function validateGoogleIntegration(): Promise<boolean> {
     const dummyTask: Task = {
         id: editingTaskId || '',
@@ -1063,6 +1160,26 @@ async function validateGoogleIntegration(): Promise<boolean> {
 }
 
 async function saveCurrentTask() {
+    const dummyTask: Task = {
+        id: editingTaskId || '',
+        name: '',
+        description: '',
+        nodes: currentNodes,
+        connections: currentConnections,
+        status: 'finish',
+        createdAt: '',
+        updatedAt: ''
+    };
+    const workflowVal = validateWorkflowConnections(dummyTask);
+    if (!workflowVal.isValid) {
+        if (typeof (window as any).showZeusNotification === 'function') {
+            (window as any).showZeusNotification(workflowVal.message, 'error');
+        } else {
+            alert(workflowVal.message);
+        }
+        return;
+    }
+
     const isValid = await validateGoogleIntegration();
     if (!isValid) return;
 

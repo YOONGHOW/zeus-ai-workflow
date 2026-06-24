@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ report_title }}</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     * { box-sizing: border-box; }
     body {
@@ -72,12 +72,12 @@
       letter-spacing: .06em;
     }
     .chart-wrap {
-      height: 330px;
       padding: 16px;
       border: 1px solid #e5e7eb;
       border-radius: 8px;
       background: #ffffff;
       page-break-inside: avoid;
+      text-align: center;
     }
     table {
       width: 100%;
@@ -156,11 +156,11 @@
 
     <section class="summary">{{ summary_note }}</section>
 
-    {% if chart.enabled %}
+    {% if chart.enabled and chart.image_b64 %}
       <section>
         <div class="section-title">{{ chart.title }}</div>
         <div class="chart-wrap">
-          <canvas id="reportChart"></canvas>
+          <img src="data:image/png;base64,{{ chart.image_b64 }}" alt="{{ chart.title }}" style="max-width: 100%; height: auto; max-height: 320px; display: inline-block;" />
         </div>
       </section>
     {% endif %}
@@ -200,37 +200,6 @@
     </footer>
   </main>
 
-  {% if chart.enabled %}
-  <script id="chart-data" type="application/json">
-    {{ chart | tojson }}
-  </script>
-  <script>
-    const chartDataElement = document.getElementById('chart-data');
-    const chartPayload = chartDataElement ? JSON.parse(chartDataElement.textContent) : null;
-    const ctx = document.getElementById('reportChart');
-    if (ctx && chartPayload && chartPayload.enabled) {
-      new Chart(ctx, {
-        type: chartPayload.type || 'bar',
-        data: {
-          labels: chartPayload.labels,
-          datasets: [{
-            label: chartPayload.y_axis,
-            data: chartPayload.values,
-            backgroundColor: 'rgba(16, 185, 129, 0.72)',
-            borderColor: '#047857',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          plugins: { legend: { display: true } },
-          scales: { y: { beginAtZero: true } }
-        }
-      });
-    }
-  </script>
-  {% endif %}
+
 </body>
 </html>

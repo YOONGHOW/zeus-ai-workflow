@@ -212,14 +212,25 @@
                         <input type="text" class="db-config-input" id="apiName" placeholder="My API" />
                     </div>
                     <div class="db-form-row">
-                        <div class="db-form-group" style="flex:0 0 100px;">
+                        <div class="db-form-group" style="flex:0 0 120px;">
                             <label>Method</label>
-                            <select id="apiMethod" class="db-config-input" style="padding: 8px;">
-                                <option value="GET">GET</option>
-                                <option value="POST">POST</option>
-                                <option value="PUT">PUT</option>
-                                <option value="DELETE">DELETE</option>
-                            </select>
+                            <div class="cb-custom-select" id="apiMethodSelect">
+                                <div class="cb-custom-select-trigger" id="apiMethodTrigger">
+                                    <span class="cb-custom-select-label" id="apiMethodLabel">GET</span>
+                                    <i class="fa-solid fa-chevron-down cb-custom-select-arrow"></i>
+                                </div>
+                                <div class="cb-custom-select-options" id="apiMethodOptions">
+                                    <div class="cb-custom-select-option selected" data-value="GET">
+                                        <span>GET</span>
+                                        <i class="fa-solid fa-check cb-option-check"></i>
+                                    </div>
+                                    <div class="cb-custom-select-option" data-value="POST">
+                                        <span>POST</span>
+                                        <i class="fa-solid fa-check cb-option-check"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="apiMethod" value="GET">
                         </div>
                         <div class="db-form-group">
                             <label>Endpoint URL</label>
@@ -886,9 +897,13 @@
                     database_name: document.getElementById('dbName').value,
                     user: document.getElementById('dbUser').value,
                     password: document.getElementById('dbPass').value,
-                    description: document.getElementById('dbDesc').value,
+                    description: document.getElementById('dbDesc').value.trim(),
                     ssl_mode: document.getElementById('dbSslMode').checked,
                 };
+                if (!payload.description) {
+                    window.showZeusNotification('Description is required.', 'error');
+                    return;
+                }
                 const url = dbEditingId
                     ? `${BASE_URL}/api/db_connections/${dbEditingId}`
                     : `${BASE_URL}/api/db_connections`;

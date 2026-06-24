@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Error - Zeus AI Workflow</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: radial-gradient(circle at 50% 50%, #1a103c 0%, #090514 100%);
+            --accent-purple: #8b5cf6;
+            --accent-pink: #d946ef;
+            --accent-glow: rgba(139, 92, 246, 0.15);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --card-bg: rgba(15, 12, 30, 0.6);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --btn-gradient: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Ambient Glow Blobs */
+        .glow-blob {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--accent-purple) 0%, rgba(139, 92, 246, 0) 70%);
+            opacity: 0.4;
+            filter: blur(80px);
+            z-index: 1;
+            animation: floatGlow 12s ease-in-out infinite alternate;
+        }
+
+        .glow-blob.pink {
+            background: radial-gradient(circle, var(--accent-pink) 0%, rgba(217, 70, 239, 0) 70%);
+            animation-delay: -6s;
+            animation-duration: 16s;
+        }
+
+        @keyframes floatGlow {
+            0% {
+                transform: translate(-10%, -10%) scale(1);
+            }
+
+            100% {
+                transform: translate(10%, 10%) scale(1.2);
+            }
+        }
+
+        /* Container & Card */
+        .error-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 520px;
+            padding: 24px;
+            perspective: 1000px;
+        }
+
+        .error-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 48px 40px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            text-align: center;
+            transform-style: preserve-3d;
+            animation: cardAppear 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes cardAppear {
+            0% {
+                opacity: 0;
+                transform: translateY(40px) rotateX(-10deg);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0) rotateX(0deg);
+            }
+        }
+
+        /* Text Content */
+        .error-code {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: var(--accent-pink);
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+            background: linear-gradient(180deg, #ffffff 0%, #c7d2fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p {
+            color: var(--text-secondary);
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 36px;
+            max-width: 380px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Interactive Buttons */
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            width: 100%;
+            max-width: 280px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            outline: none;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--btn-gradient);
+            color: #ffffff;
+            border: none;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.5);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        /* Status indicator pulse */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+            animation: beacon 1.5s infinite;
+        }
+
+        @keyframes beacon {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+                box-shadow: 0 0 0 0px rgba(239, 68, 68, 0.7);
+            }
+
+            70% {
+                transform: scale(1);
+                opacity: 1;
+                box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0;
+                box-shadow: 0 0 0 0px rgba(239, 68, 68, 0);
+            }
+        }
+
+        /* Spinning loader during retry */
+        .spinning {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glow-blob" style="top: -100px; left: -100px;"></div>
+    <div class="glow-blob pink" style="bottom: -100px; right: -100px;"></div>
+
+    <div class="error-container">
+        <div class="error-card">
+            <div class="status-pill">
+                <span class="status-dot"></span>
+                <span id="statusText">Offline Mode</span>
+            </div>
+
+            <div id="errorCode" class="error-code">Error</div>
+            <h1 id="errorTitle">Connection Lost</h1>
+            <p id="errorMsg">We couldn't connect to our systems. Please check your internet connection or backend server
+                status.</p>
+
+            <div class="btn-group">
+                <button id="retryBtn" class="btn btn-primary">
+                    <i class="fa-solid fa-arrows-rotate" id="retryIcon"></i>
+                    <span>Retry Connection</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Parse error type from query parameter
+        const params = new URLSearchParams(window.location.search);
+        const errorType = params.get('type') || 'offline';
+
+        const statusText = document.getElementById('statusText');
+        const errorCode = document.getElementById('errorCode');
+        const errorTitle = document.getElementById('errorTitle');
+        const errorMsg = document.getElementById('errorMsg');
+        const retryBtn = document.getElementById('retryBtn');
+        const retryIcon = document.getElementById('retryIcon');
+        const backBtn = document.getElementById('backBtn');
+
+        // Configure page details dynamically based on errorType
+        if (errorType === 'server_offline') {
+            statusText.textContent = 'Server Offline';
+            errorCode.textContent = 'Error';
+            errorTitle.textContent = 'Server Unavailable';
+            errorMsg.textContent = 'The Zeus AI Workflow backend server is currently offline or unreachable. Please start the server and try again.';
+        } else if (errorType === '404') {
+            statusText.textContent = '404 Page';
+            errorCode.textContent = 'Error 404';
+            errorTitle.textContent = 'Page Not Found';
+            errorMsg.textContent = 'The page or resource you are looking for does not exist or has been moved.';
+            retryBtn.style.display = 'none'; // No retry needed for 404
+        } else {
+            // Default: 'offline'
+            statusText.textContent = 'Network Offline';
+            errorCode.textContent = 'Error';
+            errorTitle.textContent = 'Connection Offline';
+            errorMsg.textContent = 'You have lost your network connection. Please check your internet settings and try again.';
+        }
+
+        // Retry Connection Action
+        retryBtn.addEventListener('click', async () => {
+            retryIcon.classList.add('spinning');
+            retryBtn.disabled = true;
+            retryBtn.style.opacity = '0.7';
+
+            // Wait 1 second to simulate connection check
+            setTimeout(async () => {
+                if (errorType === 'offline') {
+                    if (navigator.onLine) {
+                        window.location.href = '/src/public/html/main.html';
+                    } else {
+                        resetRetryButton();
+                    }
+                } else if (errorType === 'server_offline') {
+                    // Check if server is back online
+                    const BASE_URL = 'http://127.0.0.1:8080';
+                    try {
+                        const controller = new AbortController();
+                        const id = setTimeout(() => controller.abort(), 2000);
+                        const res = await fetch(`${BASE_URL}/api/api_connections`, { signal: controller.signal });
+                        clearTimeout(id);
+                        if (res.ok || res.status < 500) {
+                            window.location.href = '/src/public/html/main.html';
+                        } else {
+                            resetRetryButton();
+                        }
+                    } catch (err) {
+                        resetRetryButton();
+                    }
+                }
+            }, 1000);
+        });
+
+        function resetRetryButton() {
+            retryIcon.classList.remove('spinning');
+            retryBtn.disabled = false;
+            retryBtn.style.opacity = '1';
+
+            // Shake effect on card for failure
+            const card = document.querySelector('.error-card');
+            card.style.animation = 'none';
+            card.offsetHeight; // Trigger reflow
+            card.style.animation = 'shake 0.5s ease-in-out';
+        }
+    </script>
+    <style>
+        /* Shake animation for retry failure */
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20%,
+            60% {
+                transform: translateX(-8px);
+            }
+
+            40%,
+            80% {
+                transform: translateX(8px);
+            }
+        }
+    </style>
+</body>
+
+</html>

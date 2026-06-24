@@ -111,6 +111,89 @@ def _build_chart_payload(rows: Sequence[Dict[str, Any]], chart_config: Optional[
     }
 
 
+def _generate_chart_image_base64(chart_payload: Dict[str, Any]) -> Optional[str]:
+    if not chart_payload or not chart_payload.get("enabled"):
+        return None
+
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        import io
+        import base64
+
+        chart_type = chart_payload.get("type", "bar")
+        title = chart_payload.get("title", "")
+        labels = chart_payload.get("labels", [])
+        values = chart_payload.get("values", [])
+        x_axis = chart_payload.get("x_axis", "")
+        y_axis = chart_payload.get("y_axis", "")
+
+        # Create plot
+        fig, ax = plt.subplots(figsize=(8, 4.5), dpi=150)
+
+        primary_color = "#10b981"  # emerald
+        edge_color = "#047857"
+
+        if chart_type == "line":
+            ax.plot(labels, values, marker="o", color=primary_color, linewidth=2)
+            ax.fill_between(labels, values, color=primary_color, alpha=0.1)
+        elif chart_type == "pie":
+            ax.pie(
+                values,
+                labels=labels,
+                autopct="%1.1f%%",
+                startangle=90,
+                colors=["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"],
+            )
+        else:  # default to bar
+            bars = ax.bar(labels, values, color=primary_color, edgecolor=edge_color, width=0.6)
+            for bar in bars:
+                height = bar.get_height()
+                ax.annotate(
+                    f"{height:g}",
+                    xy=(bar.get_x() + bar.get_width() / 2, height),
+                    xytext=(0, 3),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    fontsize=8,
+                )
+
+        if chart_type != "pie":
+            ax.set_title(title, fontsize=12, fontweight="bold", pad=15, color="#111827")
+            ax.set_xlabel(x_axis, fontsize=10, labelpad=8, color="#374151")
+            ax.set_ylabel(y_axis, fontsize=10, labelpad=8, color="#374151")
+
+            # Style details
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+            ax.spines["left"].set_color("#d1d5db")
+            ax.spines["bottom"].set_color("#d1d5db")
+
+            ax.yaxis.grid(True, linestyle="--", alpha=0.5, color="#e5e7eb")
+            ax.set_axisbelow(True)
+
+            plt.xticks(
+                rotation=45 if any(len(str(l)) > 8 for l in labels) else 0,
+                ha="right" if any(len(str(l)) > 8 for l in labels) else "center",
+            )
+
+        plt.tight_layout()
+
+        # Save to buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", bbox_inches="tight", transparent=True)
+        plt.close(fig)
+        buf.seek(0)
+
+        # Encode to base64
+        return base64.b64encode(buf.read()).decode("utf-8")
+    except Exception as e:
+        print(f"[Report Renderer] Failed to generate chart image: {e}")
+        return None
+
+
 def render_report_html(
     report_title: str,
     summary_note: str,
@@ -124,6 +207,8 @@ def render_report_html(
 
     table_columns, table_rows = _normalize_rows(rows, columns)
     chart_payload = _build_chart_payload(table_rows, chart_config)
+    if chart_payload.get("enabled"):
+        chart_payload["image_b64"] = _generate_chart_image_base64(chart_payload)
     env = Environment(
         loader=FileSystemLoader(TEMPLATE_DIR),
         autoescape=select_autoescape(["html", "xml"]),
@@ -141,30 +226,6 @@ def render_report_html(
         generated_at=datetime.now(timezone.utc).strftime("%d %b %Y %H:%M UTC"),
     )
 
-
-def _run_playwright_in_thread(html_content: str) -> bytes:
-    from playwright.sync_api import sync_playwright
-    import asyncio
-    # Ensure there's a loop for playwright to attach to in this thread
-    try:
-        asyncio.get_event_loop()
-    except RuntimeError:
-        asyncio.set_event_loop(asyncio.new_event_loop())
-
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True)
-        page = browser.new_page(viewport={"width": 1280, "height": 1600})
-        page.set_content(html_content, wait_until="networkidle")
-        page.wait_for_timeout(600)
-        pdf_bytes = page.pdf(format="A4", print_background=True, margin={"top": "16mm", "right": "14mm", "bottom": "16mm", "left": "14mm"})
-        browser.close()
-        return pdf_bytes
-
-def _render_pdf_with_playwright(html_content: str) -> bytes:
-    import concurrent.futures
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(_run_playwright_in_thread, html_content)
-        return future.result()
 
 
 def _render_pdf_with_weasyprint(html_content: str) -> bytes:
@@ -184,30 +245,27 @@ def _render_pdf_with_fpdf(report_title: str, summary_note: str, rows: Sequence[D
     pdf.ln(4)
     pdf.set_font("helvetica", size=10)
     for line in (summary_note or "").splitlines():
-        pdf.multi_cell(0, 6, line.encode("latin-1", "replace").decode("latin-1"))
+        pdf.multi_cell(0, 6, line.encode("latin-1", "replace").decode("latin-1"), new_x="LMARGIN", new_y="NEXT")
     pdf.ln(4)
     if columns and rows:
         pdf.set_font("helvetica", "B", 8)
-        pdf.multi_cell(0, 5, " | ".join(columns).encode("latin-1", "replace").decode("latin-1"))
+        pdf.multi_cell(0, 5, " | ".join(columns).encode("latin-1", "replace").decode("latin-1"), new_x="LMARGIN", new_y="NEXT")
         pdf.set_font("helvetica", size=8)
         for row in rows[:100]:
-            pdf.multi_cell(0, 5, " | ".join(_stringify_cell(row.get(col)) for col in columns).encode("latin-1", "replace").decode("latin-1"))
+            pdf.multi_cell(0, 5, " | ".join(_stringify_cell(row.get(col)) for col in columns).encode("latin-1", "replace").decode("latin-1"), new_x="LMARGIN", new_y="NEXT")
     pdf_bytes = pdf.output()
-    return pdf_bytes.encode("latin1") if isinstance(pdf_bytes, str) else pdf_bytes
+    return bytes(pdf_bytes.encode("latin1") if isinstance(pdf_bytes, str) else pdf_bytes)
+
 
 
 def html_to_pdf_bytes(html_content: str, report_title: str, summary_note: str, rows: Sequence[Dict[str, Any]], columns: Sequence[str]) -> bytes:
     try:
-        return _render_pdf_with_playwright(html_content)
-    except Exception as playwright_error:
-        print(f"[Report Renderer] Playwright failed, trying WeasyPrint: {playwright_error}")
-
-    try:
-        return _render_pdf_with_weasyprint(html_content)
+        return bytes(_render_pdf_with_weasyprint(html_content))
     except Exception as weasy_error:
-        print(f"[Report Renderer] WeasyPrint failed, using fpdf fallback: {weasy_error}")
+        print(f"[Report Renderer] WeasyPrint failed, trying fpdf fallback: {weasy_error}")
 
-    return _render_pdf_with_fpdf(report_title, summary_note, rows, columns)
+    return bytes(_render_pdf_with_fpdf(report_title, summary_note, rows, columns))
+
 
 
 def save_generated_pdf(pdf_bytes: bytes, filename: str, session_id: str = None, userid: int = None, status: str = "generated_report") -> Dict[str, Any]:
