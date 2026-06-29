@@ -327,11 +327,11 @@
 
                     } else {
                         const res = await fetch(`${BASE_URL}/user/token_usage?userid=${user.userid}`);
-                        let tokenUsage = 0, tokenLimit = 300000, tokenPercentage = 0, daysLeft = 30;
+                        let tokenUsage = 0, tokenLimit = 100000, tokenPercentage = 0, daysLeft = 30;
                         if (res.ok) {
                             const d = await res.json();
                             tokenUsage = d.token_usage || 0;
-                            tokenLimit = d.limit || 300000;
+                            tokenLimit = d.limit || 100000;
                             tokenPercentage = d.percentage || 0;
                             daysLeft = d.days_left || 0;
                         }

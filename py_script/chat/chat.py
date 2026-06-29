@@ -62,7 +62,7 @@ def register_zeus_chat_route(
             except Exception as e:
                 print(f"Error fetching userid for token tracking: {e}")
 
-            if user_role == "user" and user_tokens >= 300000:
+            if user_role == "user" and user_tokens >= 100000:
                 # Need to return an error generator or simple response if limit reached
                 async def error_generator():
                     yield "```json\n"

@@ -355,10 +355,14 @@ async def execute_workflow(workflow_data: dict) -> AsyncGenerator[str, None]:
 
                 if pdf_res.get("success"):
                     report_context = report_context or {}
+                    file_id = pdf_res.get("file_id")
+                    api_base_url = os.getenv("VITE_API_BASE_URL") or "http://127.0.0.1:8080"
+                    # Strip any trailing slash in url config
+                    api_base_url = api_base_url.rstrip("/")
                     report_context.update({
                         "kind": REPORT_CONTEXT_KIND,
-                        "download_link": pdf_res.get("firebase_url", ""),
-                        "file_id": pdf_res.get("file_id"),
+                        "download_link": f"{api_base_url}/view-file/{file_id}",
+                        "file_id": file_id,
                         "filename": filename,
                     })
                     context_data = json.dumps(report_context, default=str)
