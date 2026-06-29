@@ -153,6 +153,15 @@ class DbConn(Base):
         from dbconfig.crypto import encrypt_val
         self._connection_str = encrypt_val(val)
 
+class UserConnectionPermission(Base):
+    __tablename__ = "user_connection_permissions"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    connection_type = Column(String(50), nullable=False) # 'db' or 'api'
+    connection_id = Column(Integer, nullable=False)
+    userid = Column(Integer, ForeignKey("client.userid", ondelete="CASCADE"), nullable=False, index=True)
+    allowed = Column(Integer, default=1) # 0 = false, 1 = true
+
 class ScheduledTask(Base):
     __tablename__ = "workflow_schedules"
     

@@ -12,6 +12,7 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         app: resolve(__dirname, 'src/public/html/main.html'),
         setting: resolve(__dirname, 'src/public/html/setting.html'),
+        error: resolve(__dirname, 'src/public/html/error.html'),
       },
     },
   },

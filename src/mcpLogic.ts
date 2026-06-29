@@ -493,9 +493,11 @@ export function initializeZeusChat() {
         });
     }
 
-    // --- API LOGIC ---
     async function fetchApiList() {
         try {
+            if (typeof (window as any).uacFetchMap === 'function') {
+                await (window as any).uacFetchMap();
+            }
             const response = await fetch(`${BASE_URL}/api/api_connections`);
             if (!response.ok) throw new Error('Failed to fetch APIs');
             allApis = await response.json();
@@ -508,16 +510,26 @@ export function initializeZeusChat() {
     function renderApiList() {
         if (!apiConnListContainer) return;
         apiConnListContainer.innerHTML = '';
-        if (allApis.length === 0) {
-            apiConnListContainer.innerHTML = '<div style="color:#64748b; font-size:12px;">No API connections added yet.</div>';
-            return;
-        }
 
         const userStr = localStorage.getItem('zeusUser');
         const user = userStr ? JSON.parse(userStr) : null;
         const isUser = user && user.role === 'user';
 
-        allApis.forEach(api => {
+        // Apply UAC filtering for regular users
+        const uacCheck = (window as any).uacIsAllowed;
+        const visibleApis = isUser && uacCheck
+            ? allApis.filter((api: any) => uacCheck('api', String(api.id), String(user.userid)))
+            : allApis;
+
+        if (visibleApis.length === 0) {
+            const emptyMsg = isUser
+                ? 'No API connections assigned. Please contact your administrator for access.'
+                : 'No API connections added yet. Click Create New to add one.';
+            apiConnListContainer.innerHTML = `<div style="color:#64748b; font-size:12px; text-align:center; padding: 20px 10px;">${emptyMsg}</div>`;
+            return;
+        }
+
+        visibleApis.forEach((api: any) => {
             const item = document.createElement('div');
             item.className = 'db-conn-item';
             const metaText = isUser ? api.method : `${api.method} - ${api.url}`;
@@ -548,9 +560,11 @@ export function initializeZeusChat() {
         });
     }
 
-    // --- Combined Source Selection (API + Database) ---
     async function fetchAllSources() {
         try {
+            if (typeof (window as any).uacFetchMap === 'function') {
+                await (window as any).uacFetchMap();
+            }
             const [apiRes, dbRes] = await Promise.all([
                 fetch(`${BASE_URL}/api/api_connections`),
                 fetch(`${BASE_URL}/api/db_connections`)
@@ -587,30 +601,43 @@ export function initializeZeusChat() {
         sourceApiList.innerHTML = '';
         sourceDbList.innerHTML = '';
 
-        const totalCount = allApis.length + allDatabases.length;
+        const userStr = localStorage.getItem('zeusUser');
+        const user = userStr ? JSON.parse(userStr) : null;
+        const isUser = user && user.role === 'user';
+
+        // Apply UAC filtering for regular users
+        const uacCheck = (window as any).uacIsAllowed;
+        const visibleApis = isUser && uacCheck
+            ? allApis.filter((api: any) => uacCheck('api', String(api.id), String(user.userid)))
+            : allApis;
+        const visibleDbs = isUser && uacCheck
+            ? allDatabases.filter((db: any) => uacCheck('db', String(db.id), String(user.userid)))
+            : allDatabases;
+
+        const totalCount = visibleApis.length + visibleDbs.length;
         const body = sourceSelectPopup?.querySelector('.source-select-body') as HTMLElement;
 
         if (totalCount === 0) {
             sourceSelectEmpty.style.display = 'flex';
             if (body) body.style.display = 'none';
+            if (sourceApiCount) sourceApiCount.textContent = '0';
+            if (sourceDbCount) sourceDbCount.textContent = '0';
             return;
         }
 
         sourceSelectEmpty.style.display = 'none';
         if (body) body.style.display = 'flex';
 
-        if (sourceApiCount) sourceApiCount.textContent = String(allApis.length);
-        if (sourceDbCount) sourceDbCount.textContent = String(allDatabases.length);
+        if (sourceApiCount) sourceApiCount.textContent = String(visibleApis.length);
+        if (sourceDbCount) sourceDbCount.textContent = String(visibleDbs.length);
 
         // Render APIs
-        const userStr = localStorage.getItem('zeusUser');
-        const user = userStr ? JSON.parse(userStr) : null;
-        const isUser = user && user.role === 'user';
 
-        if (allApis.length === 0) {
+
+        if (visibleApis.length === 0) {
             sourceApiList.innerHTML = '<div class="source-column-empty"><i class="fa-solid fa-plug"></i><span>No APIs configured</span></div>';
         } else {
-            allApis.forEach((api: any) => {
+            visibleApis.forEach((api: any) => {
                 const isSelected = selectedSource && selectedSource.type === 'api' && selectedSource.id === api.id;
                 const item = document.createElement('div');
                 item.className = `db-select-item${isSelected ? ' selected' : ''}`;
@@ -634,7 +661,7 @@ export function initializeZeusChat() {
         }
 
         // Render Databases
-        if (allDatabases.length === 0) {
+        if (visibleDbs.length === 0) {
             sourceDbList.innerHTML = '<div class="source-column-empty"><i class="fa-solid fa-database"></i><span>No databases configured</span></div>';
         } else {
             const typeIcons: Record<string, string> = {
@@ -652,7 +679,7 @@ export function initializeZeusChat() {
                 'SQLite': 'type-sqlite',
             };
 
-            allDatabases.forEach((db: any) => {
+            visibleDbs.forEach((db: any) => {
                 const isSelected = selectedSource && selectedSource.type === 'database' && selectedSource.id === db.id;
                 const item = document.createElement('div');
                 item.className = `db-select-item${isSelected ? ' selected' : ''}`;

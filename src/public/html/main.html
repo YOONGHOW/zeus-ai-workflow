@@ -88,6 +88,14 @@
                     <div class="db-modal-tab-sub">Manage API access</div>
                 </div>
             </button>
+            <!-- Admin-only: User Access Control tab -->
+            <button class="db-modal-tab" data-tab="userAccess" id="tabUserAccess" style="display:none;">
+                <div class="db-modal-tab-icon-wrap"><i class="fa-solid fa-user-lock"></i></div>
+                <div>
+                    <div class="db-modal-tab-title">User Access</div>
+                    <div class="db-modal-tab-sub">Control permissions</div>
+                </div>
+            </button>
         </div>
         <div class="db-modal-body">
             <button class="db-modal-close" id="dbConfigClose"><i class="fa-solid fa-xmark"></i></button>
@@ -168,9 +176,12 @@
                         <input type="password" class="db-config-input" id="dbPass" placeholder="••••••••"
                             autocomplete="new-password" />
                     </div>
-                    <div class="db-form-group" style="flex-direction: row; align-items: center; gap: 8px; margin-top: 8px; margin-bottom: 8px;">
+                    <div class="db-form-group"
+                        style="flex-direction: row; align-items: center; gap: 8px; margin-top: 8px; margin-bottom: 8px;">
                         <input type="checkbox" id="dbSslMode" style="cursor: pointer; width: 16px; height: 16px;" />
-                        <label for="dbSslMode" style="cursor: pointer; user-select: none; margin-bottom: 0; text-transform: none; font-size: 11px; color: #475569; font-weight: 600; letter-spacing: 0.03em;">Require SSL (SSL Mode)</label>
+                        <label for="dbSslMode"
+                            style="cursor: pointer; user-select: none; margin-bottom: 0; text-transform: none; font-size: 11px; color: #475569; font-weight: 600; letter-spacing: 0.03em;">Require
+                            SSL (SSL Mode)</label>
                     </div>
                     <div class="db-form-group">
                         <div class="db-form-label-row">
@@ -256,6 +267,44 @@
                         <button class="db-btn-ghost" id="apiCancelForm">Cancel</button>
                         <button class="db-btn-primary" id="apiSaveBtn"><i class="fa-solid fa-floppy-disk"></i>
                             Save</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- USER ACCESS TAB (Admin only) -->
+            <div class="db-modal-content" id="contentUserAccess">
+                <div class="db-modal-content-header">
+                    <div>
+                        <h3>User Access Control</h3>
+                        <p>Manage which users can access each database and API connection.</p>
+                    </div>
+                </div>
+
+                <!-- Sub-tab switcher -->
+                <div class="uac-subtab-row">
+                    <button class="uac-subtab active" id="uacTabDb" data-uactab="db">
+                        <i class="fa-solid fa-database"></i> Databases
+                    </button>
+                    <button class="uac-subtab" id="uacTabApi" data-uactab="api">
+                        <i class="fa-solid fa-plug"></i> REST APIs
+                    </button>
+                </div>
+
+
+
+
+
+                <!-- DB access list -->
+                <div id="uacDbPanel" class="uac-panel active">
+                    <div id="uacDbList" class="uac-conn-list">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- API access list -->
+                <div id="uacApiPanel" class="uac-panel">
+                    <div id="uacApiList" class="uac-conn-list">
+                        <!-- Populated by JS -->
                     </div>
                 </div>
             </div>
@@ -745,12 +794,26 @@
             });
         });
 
-        function openDbConfig() {
+        async function openDbConfig() {
             dbConfigPanel.classList.add('active');
             dbConfigOverlay.classList.add('active');
+
+            // Fetch UAC map first
+            if (typeof uacFetchMap === 'function') {
+                await uacFetchMap();
+            }
+
             renderDbConnList();
             if (typeof window.renderApiConnList === 'function') {
                 window.renderApiConnList();
+            }
+            // Show User Access tab for admins
+            const _uacUser = JSON.parse(localStorage.getItem('zeusUser') || 'null');
+            const _tabUA = document.getElementById('tabUserAccess');
+            if (_uacUser && _uacUser.role === 'admin') {
+                if (_tabUA) _tabUA.style.display = '';
+            } else {
+                if (_tabUA) _tabUA.style.display = 'none';
             }
         }
         function closeDbConfig() {
@@ -763,7 +826,295 @@
         if (dbConfigClose) dbConfigClose.addEventListener('click', closeDbConfig);
         if (dbConfigOverlay) dbConfigOverlay.addEventListener('click', closeDbConfig);
 
-        // --- DB connections list ---
+        // ── USER ACCESS CONTROL (UAC) ──────────────────────────────────────────
+        // Backed by backend database endpoints
+        window.uacPermissionsMap = { db: {}, api: {} };
+
+        async function uacFetchMap() {
+            try {
+                const res = await fetch(`${BASE_URL}/api/uac/permissions`);
+                if (res.ok) {
+                    window.uacPermissionsMap = await res.json();
+                }
+            } catch (e) {
+                console.error("Failed to load UAC permissions", e);
+            }
+        }
+        window.uacFetchMap = uacFetchMap;
+
+        function uacIsAllowed(type, connId, userId) {
+            // Default: allowed (true) unless explicitly denied
+            const map = window.uacPermissionsMap || { db: {}, api: {} };
+            const group = map[type] || {};
+            const connMap = group[connId];
+            if (!connMap || connMap[userId] === undefined) return true;
+            return connMap[userId];
+        }
+        window.uacIsAllowed = uacIsAllowed;
+
+        async function uacSetPermission(type, connId, userId, allowed) {
+            try {
+                const res = await fetch(`${BASE_URL}/api/uac/permissions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        connection_type: type,
+                        connection_id: parseInt(connId),
+                        userid: parseInt(userId),
+                        allowed: allowed
+                    })
+                });
+                if (res.ok) {
+                    // Update local cache
+                    if (!window.uacPermissionsMap[type]) window.uacPermissionsMap[type] = {};
+                    if (!window.uacPermissionsMap[type][connId]) window.uacPermissionsMap[type][connId] = {};
+                    window.uacPermissionsMap[type][connId][userId] = allowed;
+                }
+            } catch (e) {
+                console.error("Failed to set UAC permission", e);
+            }
+        }
+
+
+        async function renderUacTab() {
+            const uacDbListEl = document.getElementById('uacDbList');
+            const uacApiListEl = document.getElementById('uacApiList');
+            if (!uacDbListEl || !uacApiListEl) return;
+
+            uacDbListEl.innerHTML = '<div class="uac-empty-state"><i class="fa-solid fa-spinner fa-spin"></i>Loading...</div>';
+            uacApiListEl.innerHTML = '<div class="uac-empty-state"><i class="fa-solid fa-spinner fa-spin"></i>Loading...</div>';
+
+            let users = [], dbConns = [], apiConns = [];
+            try {
+                await uacFetchMap();
+                const [usersRes, dbRes, apiRes] = await Promise.all([
+                    fetch(`${BASE_URL}/admin/token_usage`),
+                    fetch(`${BASE_URL}/api/db_connections`),
+                    fetch(`${BASE_URL}/api/api_connections`)
+                ]);
+                if (usersRes.ok) users = await usersRes.json();
+                if (dbRes.ok) dbConns = await dbRes.json();
+                if (apiRes.ok) apiConns = await apiRes.json();
+            } catch (e) {
+                uacDbListEl.innerHTML = '<div class="uac-empty-state"><i class="fa-solid fa-triangle-exclamation"></i>Could not load data.</div>';
+                uacApiListEl.innerHTML = '';
+                return;
+            }
+
+            // Filter out admin users (they always have full access)
+            const nonAdminUsers = users.filter(u => u.role !== 'admin');
+
+            function buildConnCard(conn, type) {
+                const isApi = type === 'api';
+                const connId = String(conn.id);
+                const name = isApi ? (conn.apiName || 'Unnamed API') : (conn.name || 'Unnamed DB');
+                const meta = isApi ? `${conn.method || 'GET'} · ${conn.url || ''}` : (conn.type || 'Database');
+                const iconClass = isApi ? 'fa-solid fa-plug' : 'fa-solid fa-database';
+                const iconType = isApi ? 'type-api' : '';
+
+                const card = document.createElement('div');
+                card.className = 'uac-conn-card';
+                card.dataset.name = name.toLowerCase();
+
+                // Build user rows for this card
+                const buildUserRows = (users, searchVal, sortDir) => {
+                    if (users.length === 0) {
+                        return '<div class="uac-empty-state" style="padding:16px 18px;"><i class="fa-solid fa-users" style="font-size:16px;"></i>No non-admin users found.</div>';
+                    }
+                    let filtered = users.filter(u => (u.email || '').toLowerCase().includes(searchVal));
+                    filtered = [...filtered].sort((a, b) => {
+                        const ea = (a.email || '').toLowerCase();
+                        const eb = (b.email || '').toLowerCase();
+                        return sortDir === 'asc' ? ea.localeCompare(eb) : eb.localeCompare(ea);
+                    });
+                    if (filtered.length === 0) {
+                        return '<div class="uac-empty-state" style="padding:14px 18px;"><i class="fa-solid fa-search" style="font-size:14px;"></i>No users match your search.</div>';
+                    }
+                    return filtered.map(u => {
+                        const userId = String(u.userid);
+                        const allowed = uacIsAllowed(type, connId, userId);
+                        const initials = (u.email || '?').substring(0, 2).toUpperCase();
+                        const toggleId = `uac-toggle-${type}-${connId}-${userId}`;
+                        return `
+                            <div class="uac-user-row" data-userid="${userId}" data-email="${(u.email || '').toLowerCase()}">
+                                <div class="uac-user-info">
+                                    <div class="uac-user-avatar">${initials}</div>
+                                    <div>
+                                        <div class="uac-user-email">${u.email}</div>
+                                    </div>
+                                    <span class="uac-user-role-badge user">${u.role}</span>
+                                </div>
+                                <label class="uac-toggle" title="${allowed ? 'Click to deny access' : 'Click to allow access'}">
+                                    <input type="checkbox" id="${toggleId}" ${allowed ? 'checked' : ''}
+                                        data-type="${type}" data-connid="${connId}" data-userid="${userId}">
+                                    <span class="uac-toggle-slider"></span>
+                                </label>
+                            </div>`;
+                    }).join('');
+                };
+
+                const searchId = `uac-search-${type}-${connId}`;
+                const sortBtnId = `uac-sortbtn-${type}-${connId}`;
+                const sortMenuId = `uac-sortmenu-${type}-${connId}`;
+                const userListId = `uac-users-${type}-${connId}`;
+
+                card.innerHTML = `
+                    <div class="uac-conn-card-header">
+                        <div class="uac-conn-card-header-left">
+                            <div class="uac-conn-card-icon ${iconType}"><i class="${iconClass}"></i></div>
+                            <div>
+                                <div class="uac-conn-card-name">${name}</div>
+                                <div class="uac-conn-card-meta">${meta}</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-down uac-conn-card-chevron"></i>
+                    </div>
+                    <div class="uac-user-list" style="display: none;">
+                        <div class="uac-card-toolbar">
+                            <div class="uac-card-search-wrap">
+                                <i class="fa-solid fa-magnifying-glass uac-card-search-icon"></i>
+                                <input type="text" class="uac-card-search" id="${searchId}" placeholder="Search by email…">
+                            </div>
+                            <div class="uac-sort-dropdown" id="${sortBtnId}-wrap">
+                                <button class="uac-sort-btn" id="${sortBtnId}" data-dir="asc">
+                                    <span>A–Z</span>
+                                    <i class="fa-solid fa-chevron-down uac-sort-chevron"></i>
+                                </button>
+                                <div class="uac-sort-menu" id="${sortMenuId}">
+                                    <div class="uac-sort-option active" data-val="asc">A–Z</div>
+                                    <div class="uac-sort-option" data-val="desc">Z–A</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="${userListId}" class="uac-user-rows">
+                            ${buildUserRows(nonAdminUsers, '', 'asc')}
+                        </div>
+                    </div>
+                `;
+
+                // Accordion toggle (header click only)
+                const header = card.querySelector('.uac-conn-card-header');
+                const userList = card.querySelector('.uac-user-list');
+                const chevron = card.querySelector('.uac-conn-card-chevron');
+                header.addEventListener('click', () => {
+                    const isExpanded = userList.style.display === 'block';
+                    userList.style.display = isExpanded ? 'none' : 'block';
+                    chevron.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
+                });
+
+                // Prevent toolbar clicks bubbling to accordion header
+                card.querySelector('.uac-card-toolbar').addEventListener('click', e => e.stopPropagation());
+
+                // Wire up toggles
+                const wireToggles = (container) => {
+                    container.querySelectorAll('.uac-toggle input').forEach(chk => {
+                        chk.addEventListener('change', (e) => {
+                            const t = e.target.dataset.type;
+                            const cid = e.target.dataset.connid;
+                            const uid = e.target.dataset.userid;
+                            uacSetPermission(t, cid, uid, e.target.checked);
+                            e.target.closest('label').title = e.target.checked ? 'Click to deny access' : 'Click to allow access';
+                        });
+                    });
+                };
+
+                // Per-card search & sort state
+                const searchInput = card.querySelector(`#${searchId}`);
+                const sortBtn = card.querySelector(`#${sortBtnId}`);
+                const sortMenu = card.querySelector(`#${sortMenuId}`);
+                const userRowsContainer = card.querySelector(`#${userListId}`);
+                let currentSort = 'asc';
+
+                const refreshUserRows = () => {
+                    userRowsContainer.innerHTML = buildUserRows(
+                        nonAdminUsers,
+                        searchInput.value.toLowerCase(),
+                        currentSort
+                    );
+                    wireToggles(userRowsContainer);
+                };
+
+                // Custom sort dropdown toggle
+                sortBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = sortMenu.classList.contains('open');
+                    // Close all other open menus first
+                    document.querySelectorAll('.uac-sort-menu.open').forEach(m => m.classList.remove('open'));
+                    document.querySelectorAll('.uac-sort-btn.open').forEach(b => b.classList.remove('open'));
+                    if (!isOpen) {
+                        sortMenu.classList.add('open');
+                        sortBtn.classList.add('open');
+                    }
+                });
+
+                sortMenu.querySelectorAll('.uac-sort-option').forEach(opt => {
+                    opt.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        currentSort = opt.dataset.val;
+                        const label = currentSort === 'asc' ? 'A–Z' : 'Z–A';
+                        sortBtn.innerHTML = `<span>${label}</span><i class="fa-solid fa-chevron-down uac-sort-chevron"></i>`;
+                        sortMenu.querySelectorAll('.uac-sort-option').forEach(o => o.classList.remove('active'));
+                        opt.classList.add('active');
+                        sortMenu.classList.remove('open');
+                        sortBtn.classList.remove('open');
+                        refreshUserRows();
+                    });
+                });
+
+                searchInput.addEventListener('input', refreshUserRows);
+
+                wireToggles(userRowsContainer);
+                return card;
+            }
+
+
+            // Render DB connections
+            uacDbListEl.innerHTML = '';
+            if (dbConns.length === 0) {
+                uacDbListEl.innerHTML = '<div class="uac-empty-state"><i class="fa-solid fa-database"></i>No database connections configured.</div>';
+            } else {
+                dbConns.forEach(c => uacDbListEl.appendChild(buildConnCard(c, 'db')));
+            }
+
+            // Render API connections
+            uacApiListEl.innerHTML = '';
+            if (apiConns.length === 0) {
+                uacApiListEl.innerHTML = '<div class="uac-empty-state"><i class="fa-solid fa-plug"></i>No API connections configured.</div>';
+            } else {
+                apiConns.forEach(c => uacApiListEl.appendChild(buildConnCard(c, 'api')));
+            }
+        }
+
+        // Close UAC sort menus when clicking outside
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.uac-sort-menu.open').forEach(m => m.classList.remove('open'));
+            document.querySelectorAll('.uac-sort-btn.open').forEach(b => b.classList.remove('open'));
+        });
+
+        // UAC sub-tab switching
+
+        document.querySelectorAll('.uac-subtab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.uac-subtab').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.uac-panel').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                const panelId = btn.dataset.uactab === 'db' ? 'uacDbPanel' : 'uacApiPanel';
+                document.getElementById(panelId).classList.add('active');
+            });
+        });
+
+        // Trigger UAC render when the User Access tab is clicked
+        const _tabUserAccessBtn = document.getElementById('tabUserAccess');
+        if (_tabUserAccessBtn) {
+            _tabUserAccessBtn.addEventListener('click', () => {
+                renderUacTab();
+            });
+        }
+
+        // Expose uacIsAllowed globally so mcpLogic.ts can filter connections
+        window.uacIsAllowed = uacIsAllowed;
+
+
         let dbEditingId = null;
 
         function openDbForm(c) {
@@ -797,19 +1148,29 @@
                 const res = await fetch(`${BASE_URL}/api/db_connections`);
                 const conns = await res.json();
                 dbConnList.innerHTML = '';
-                if (conns.length === 0) {
+
+                const user = JSON.parse(localStorage.getItem('zeusUser'));
+                const isUser = user && user.role === 'user';
+
+                // Apply UAC filtering for regular users
+                const visibleConns = isUser && typeof uacIsAllowed === 'function'
+                    ? conns.filter(c => uacIsAllowed('db', String(c.id), String(user.userid)))
+                    : conns;
+
+                if (visibleConns.length === 0) {
+                    const emptyMsg = isUser
+                        ? 'No database connections assigned. Please contact your administrator for access.'
+                        : 'No database connections yet. Click <strong>Create New</strong> to add one.';
                     dbConnList.innerHTML = `
                         <div class="db-conn-empty">
                             <i class="fa-solid fa-database"></i>
-                            <span>No database connections yet. Click <strong>Create New</strong> to add one.</span>
+                            <span>${emptyMsg}</span>
                         </div>`;
                     return;
                 }
                 const typeIcons = { mysql: 'fa-solid fa-database', postgresql: 'fa-solid fa-database', mssql: 'fa-brands fa-microsoft', sqlite: 'fa-solid fa-file', mongodb: 'fa-solid fa-leaf' };
                 const typeLabels = { mysql: 'MySQL', postgresql: 'PostgreSQL', mssql: 'SQL Server', sqlite: 'SQLite', mongodb: 'MongoDB' };
-                const user = JSON.parse(localStorage.getItem('zeusUser'));
-                const isUser = user && user.role === 'user';
-                conns.forEach((c) => {
+                visibleConns.forEach((c) => {
                     const item = document.createElement('div');
                     item.className = 'db-conn-item';
                     const icon = typeIcons[c.type] || 'fa-solid fa-database';

@@ -48,6 +48,7 @@ from dbconfig.db import (
     engine,
     ApiConn,
     DbConn,
+    UserConnectionPermission,
     UserTable,
     ChatSession,
     ChatHistory,
@@ -1592,6 +1593,49 @@ async def delete_api_connection(conn_id: int, db: Session = Depends(get_db)):
     if c:
         db.delete(c)
         db.commit()
+    return {"status": "success"}
+
+class UacPermissionSetPayload(BaseModel):
+    connection_type: str  # 'db' or 'api'
+    connection_id: int
+    userid: int
+    allowed: bool
+
+@config_router.get("/uac/permissions")
+async def get_uac_permissions(db: Session = Depends(get_db)):
+    perms = db.query(UserConnectionPermission).all()
+    result = {"db": {}, "api": {}}
+    for p in perms:
+        t = p.connection_type
+        conn_id = str(p.connection_id)
+        userid = str(p.userid)
+        if t not in result:
+            result[t] = {}
+        if conn_id not in result[t]:
+            result[t][conn_id] = {}
+        result[t][conn_id][userid] = bool(p.allowed)
+    return result
+
+@config_router.post("/uac/permissions")
+async def set_uac_permission(payload: UacPermissionSetPayload, db: Session = Depends(get_db)):
+    perm = db.query(UserConnectionPermission).filter(
+        UserConnectionPermission.connection_type == payload.connection_type,
+        UserConnectionPermission.connection_id == payload.connection_id,
+        UserConnectionPermission.userid == payload.userid
+    ).first()
+    
+    val = 1 if payload.allowed else 0
+    if perm:
+        perm.allowed = val
+    else:
+        perm = UserConnectionPermission(
+            connection_type=payload.connection_type,
+            connection_id=payload.connection_id,
+            userid=payload.userid,
+            allowed=val
+        )
+        db.add(perm)
+    db.commit()
     return {"status": "success"}
 
 from workflow.autoTask import execute_workflow
