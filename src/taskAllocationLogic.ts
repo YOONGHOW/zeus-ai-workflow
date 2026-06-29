@@ -1400,16 +1400,30 @@ function selectNode(nodeId: string) {
                         <option value="">Loading Databases...</option>
                     </select></div>
                 `;
-                fetch(`${BASE_URL}/api/db_connections`)
-                    .then(r => r.json())
-                    .then(dbs => {
+                (async () => {
+                    try {
+                        if (typeof (window as any).uacFetchMap === 'function') {
+                            await (window as any).uacFetchMap();
+                        }
+                        const r = await fetch(`${BASE_URL}/api/db_connections`);
+                        const dbs = await r.json();
                         const selectEl = document.getElementById('cfg_db') as HTMLSelectElement;
                         if (selectEl) {
+                            const userStr = localStorage.getItem('zeusUser');
+                            const user = userStr ? JSON.parse(userStr) : null;
+                            const isUser = user && user.role === 'user';
+                            const uacCheck = (window as any).uacIsAllowed;
+                            const visibleDbs = isUser && uacCheck
+                                ? dbs.filter((db: any) => uacCheck('db', String(db.id), String(user.userid)))
+                                : dbs;
+
                             selectEl.innerHTML = '<option value="">Select Database...</option>' +
-                                dbs.map((db: any) => `<option value="${db.database_name || db.name}" ${c.db === (db.database_name || db.name) ? 'selected' : ''}>${db.name}</option>`).join('');
+                                visibleDbs.map((db: any) => `<option value="${db.database_name || db.name}" ${c.db === (db.database_name || db.name) ? 'selected' : ''}>${db.name}</option>`).join('');
                         }
-                    })
-                    .catch(e => console.error("Failed to load DBs", e));
+                    } catch (e) {
+                        console.error("Failed to load DBs", e);
+                    }
+                })();
                 break;
             case 'api':
                 configHtml = `
@@ -1418,16 +1432,30 @@ function selectNode(nodeId: string) {
                         <option value="">Loading APIs...</option>
                     </select></div>
                 `;
-                fetch(`${BASE_URL}/api/api_connections`)
-                    .then(r => r.json())
-                    .then(apis => {
+                (async () => {
+                    try {
+                        if (typeof (window as any).uacFetchMap === 'function') {
+                            await (window as any).uacFetchMap();
+                        }
+                        const r = await fetch(`${BASE_URL}/api/api_connections`);
+                        const apis = await r.json();
                         const selectEl = document.getElementById('cfg_api') as HTMLSelectElement;
                         if (selectEl) {
+                            const userStr = localStorage.getItem('zeusUser');
+                            const user = userStr ? JSON.parse(userStr) : null;
+                            const isUser = user && user.role === 'user';
+                            const uacCheck = (window as any).uacIsAllowed;
+                            const visibleApis = isUser && uacCheck
+                                ? apis.filter((api: any) => uacCheck('api', String(api.id), String(user.userid)))
+                                : apis;
+
                             selectEl.innerHTML = '<option value="">Select API Endpoint...</option>' +
-                                apis.map((api: any) => `<option value="${api.apiName || api.name}" ${c.api === (api.apiName || api.name) ? 'selected' : ''}>${api.apiName || api.name}</option>`).join('');
+                                visibleApis.map((api: any) => `<option value="${api.apiName || api.name}" ${c.api === (api.apiName || api.name) ? 'selected' : ''}>${api.apiName || api.name}</option>`).join('');
                         }
-                    })
-                    .catch(e => console.error("Failed to load APIs", e));
+                    } catch (e) {
+                        console.error("Failed to load APIs", e);
+                    }
+                })();
                 break;
             case 'web_search':
                 configHtml = `
