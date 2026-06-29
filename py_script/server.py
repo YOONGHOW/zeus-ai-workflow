@@ -930,7 +930,7 @@ async def get_user_token_usage(userid: int, db: Session = Depends(get_db)):
         days_left = last_day - now.day
 
         usage = user.token_usage if user.token_usage is not None else 0
-        limit = 300000
+        limit = 100000
         percentage = min((usage / limit) * 100, 100) if limit > 0 else 0
 
         return {
@@ -1278,7 +1278,7 @@ async def generate_data_report(payload: GenerateDataReportRequest):
             "status": "success",
             "file_id": pdf_result.get("file_id"),
             "filename": pdf_result.get("filename"),
-            "download_link": pdf_result.get("firebase_url"),
+            "download_link": f"{API_BASE_URL.rstrip('/')}/view-file/{pdf_result.get('file_id')}",
             "row_count": pdf_result.get("row_count", len(report_context.get("rows", []))),
             "columns": pdf_result.get("columns", report_context.get("columns", [])),
             "sql_query": report_context.get("sql_query", ""),
