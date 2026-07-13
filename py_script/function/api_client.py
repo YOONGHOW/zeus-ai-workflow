@@ -13,7 +13,7 @@ class ZeusAPIClient:
 
     def __init__(self):
         if self._client is None:
-            self.api_key = os.getenv("GEMINI_API_KEY", "")
+            self.api_key = os.getenv("GEMINI_API_KEY", "") or os.getenv("OPENAI_API_KEY", "")
             self._client = httpx.AsyncClient(timeout=120.0, follow_redirects=True)
 
     @classmethod
@@ -25,7 +25,7 @@ class ZeusAPIClient:
     @property
     def client(self) -> httpx.AsyncClient:
         if self._client is None:
-            self.api_key = os.getenv("GEMINI_API_KEY", "")
+            self.api_key = os.getenv("GEMINI_API_KEY", "") or os.getenv("OPENAI_API_KEY", "")
             self._client = httpx.AsyncClient(timeout=120.0, follow_redirects=True)
         return self._client
 
@@ -42,57 +42,121 @@ class ZeusAPIClient:
         temperature: float = 0.6,
         token_holder: Optional[dict] = None
     ) -> str:
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self.api_key}"
-            headers = {"Content-Type": "application/json"}
-            data = {
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {
+        gemini_key = os.getenv("GEMINI_API_KEY", "")
+        openai_key = os.getenv("OPENAI_API_KEY", "")
+
+        if gemini_key:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+                headers = {"Content-Type": "application/json"}
+                data = {
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {
+                        "temperature": temperature
+                    }
+                }
+                if system_instruction:
+                    data["systemInstruction"] = {
+                        "parts": [{"text": system_instruction}]
+                    }
+                if response_mime_type:
+                    data["generationConfig"]["responseMimeType"] = response_mime_type
+
+                response = await self.client.post(url, headers=headers, json=data)
+                if response.status_code == 200:
+                    result = response.json()
+                    if token_holder is not None and "usageMetadata" in result:
+                        usage = result["usageMetadata"]
+                        token_holder["prompt_tokens"] = usage.get("promptTokenCount", 0)
+                        token_holder["completion_tokens"] = usage.get("candidatesTokenCount", 0)
+                        token_holder["total_tokens"] = usage.get("totalTokenCount", 0)
+                    return result["candidates"][0]["content"]["parts"][0]["text"]
+                else:
+                    print(f"[Error] Gemini API Error: {response.text}")
+                    return "{}" if response_mime_type == "application/json" else f"[Error] LLM API Error: {response.text}"
+            except Exception as e:
+                print(f"[Error] Gemini API failure: {e}")
+                return "{}" if response_mime_type == "application/json" else f"[Error] LLM Request failed: {e}"
+        else:
+            try:
+                url = "https://api.openai.com/v1/chat/completions"
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {openai_key}"
+                }
+                messages = []
+                if system_instruction:
+                    messages.append({"role": "system", "content": system_instruction})
+                messages.append({"role": "user", "content": prompt})
+                
+                data = {
+                    "model": "gpt-4o-mini",
+                    "messages": messages,
                     "temperature": temperature
                 }
-            }
-            if system_instruction:
-                data["systemInstruction"] = {
-                    "parts": [{"text": system_instruction}]
-                }
-            if response_mime_type:
-                data["generationConfig"]["responseMimeType"] = response_mime_type
+                if response_mime_type == "application/json":
+                    data["response_format"] = {"type": "json_object"}
 
-            response = await self.client.post(url, headers=headers, json=data)
-            if response.status_code == 200:
-                result = response.json()
-                if token_holder is not None and "usageMetadata" in result:
-                    usage = result["usageMetadata"]
-                    token_holder["prompt_tokens"] = usage.get("promptTokenCount", 0)
-                    token_holder["completion_tokens"] = usage.get("candidatesTokenCount", 0)
-                    token_holder["total_tokens"] = usage.get("totalTokenCount", 0)
-                return result["candidates"][0]["content"]["parts"][0]["text"]
-            else:
-                print(f"[Error] Gemini API Error: {response.text}")
-                return "{}" if response_mime_type == "application/json" else f"[Error] LLM API Error: {response.text}"
-        except Exception as e:
-            print(f"[Error] Gemini API failure: {e}")
-            return "{}" if response_mime_type == "application/json" else f"[Error] LLM Request failed: {e}"
+                response = await self.client.post(url, headers=headers, json=data)
+                if response.status_code == 200:
+                    result = response.json()
+                    if token_holder is not None and "usage" in result:
+                        usage = result["usage"]
+                        token_holder["prompt_tokens"] = usage.get("prompt_tokens", 0)
+                        token_holder["completion_tokens"] = usage.get("completion_tokens", 0)
+                        token_holder["total_tokens"] = usage.get("totalTokenCount", 0)
+                    return result["choices"][0]["message"]["content"]
+                else:
+                    print(f"[Error] OpenAI API Error: {response.text}")
+                    return "{}" if response_mime_type == "application/json" else f"[Error] LLM API Error: {response.text}"
+            except Exception as e:
+                print(f"[Error] OpenAI API failure: {e}")
+                return "{}" if response_mime_type == "application/json" else f"[Error] LLM Request failed: {e}"
 
     async def get_embedding(self, text: str) -> List[float]:
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={self.api_key}"
-            headers = {"Content-Type": "application/json"}
-            data = {
-                "content": {
-                    "parts": [{"text": text}]
+        gemini_key = os.getenv("GEMINI_API_KEY", "")
+        openai_key = os.getenv("OPENAI_API_KEY", "")
+
+        if gemini_key:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={gemini_key}"
+                headers = {"Content-Type": "application/json"}
+                data = {
+                    "content": {
+                        "parts": [{"text": text}]
+                    }
                 }
-            }
-            response = await self.client.post(url, headers=headers, json=data, timeout=30.0)
-            if response.status_code == 200:
-                result = response.json()
-                return result["embedding"]["values"]
-            else:
-                print(f"[Error] Error fetching embedding: {response.text}")
+                response = await self.client.post(url, headers=headers, json=data, timeout=30.0)
+                if response.status_code == 200:
+                    result = response.json()
+                    return result["embedding"]["values"]
+                else:
+                    print(f"[Error] Error fetching embedding: {response.text}")
+                    return []
+            except Exception as e:
+                print(f"[Error] Error fetching embedding: {e}")
                 return []
-        except Exception as e:
-            print(f"[Error] Error fetching embedding: {e}")
-            return []
+        else:
+            try:
+                url = "https://api.openai.com/v1/embeddings"
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {openai_key}"
+                }
+                data = {
+                    "input": text,
+                    "model": "text-embedding-3-small"
+                }
+                response = await self.client.post(url, headers=headers, json=data, timeout=30.0)
+                if response.status_code == 200:
+                    result = response.json()
+                    return result["data"][0]["embedding"]
+                else:
+                    print(f"[Error] Error fetching embedding: {response.text}")
+                    return []
+            except Exception as e:
+                print(f"[Error] Error fetching embedding: {e}")
+                return []
 
     async def crawl_url(self, url: str) -> str:
         headers = {

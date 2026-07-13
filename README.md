@@ -34,6 +34,26 @@ Zeus Web is a premium, AI-driven unified workspace combining document OCR proces
     *   **Tools Column Compaction**: Lists all tool integration badges, cleanly compacting to a `...` badge with a hover tooltip preview if a workflow uses more than 4 tools.
 *   **Automated Execution Engine**: A Python-based automation worker (`autoTask.py`) executes configured pipelines, using an LLM to automatically summarize data and format it into premium, responsive HTML email templates sent via Gmail.
 
+### 5. User Access & Security
+*   **Secure Authentication**: Integrated user authentication to ensure data privacy and secure workspace isolation.
+*   **Private Workspaces**: Each user's chat history, saved workflows, and database configurations are strictly isolated and protected.
+
+### 6. API and Database Configuration Management
+*   **Centralized Credential Store**: An intuitive interface to securely add, manage, and test API keys and database connection strings for multiple engines (PostgreSQL, MySQL, SQL Server, SQLite) and REST endpoints.
+*   **Dynamic Source Selection**: Seamlessly toggle between different configured databases or API endpoints on the fly when querying via the Unified Zeus Chat.
+
+### 7. AI Generated Instruction DB
+*   **Self-Learning Context**: A specialized database that automatically stores, indexes, and retrieves successful AI query patterns, custom system instructions, and workflow configurations.
+*   **Dynamic Prompt Augmentation**: The AI dynamically fetches relevant historical instructions from this DB to continuously improve its accuracy and contextual awareness for your specific use cases.
+
+### 8. Automated Email & Communication
+*   **Smart Email Generation**: Leverages the LLM to automatically generate context-aware, premium HTML email templates directly from query results, workflow outputs, or document extractions.
+*   **Direct Gmail Integration**: Seamlessly sends these customized, responsive emails to clients or internal teams automatically through integrated Gmail services.
+
+### 9. Smart Calendar Management
+*   **Automated Event Creation**: The AI can parse natural language (e.g., "Schedule a sync meeting with the team next Tuesday") to instantly organize and create events directly in your Google Calendar.
+*   **Workflow-Triggered Scheduling**: Calendar events can be automatically generated as action items resulting from a larger scheduled workflow pipeline.
+
 ---
 
 ## 🛠️ Tech Stack
