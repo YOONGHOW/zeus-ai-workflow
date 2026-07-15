@@ -12,6 +12,7 @@ FIREBASE_STORAGE_BUCKET = os.getenv("FIREBASE_STORAGE_BUCKET")
 def initialize_firebase():
     if not firebase_admin._apps:
         service_account_env = os.getenv("SERVICE_ACCOUNT_JSON")
+        print(f"[Debug] SERVICE_ACCOUNT_JSON env var present: {service_account_env is not None}")
         if service_account_env:
             import json
             try:
@@ -24,7 +25,8 @@ def initialize_firebase():
                 return
             except Exception as e:
                 print(f"[Error] Failed to parse SERVICE_ACCOUNT_JSON env var: {e}")
-
+                raise e
+        
         cred_path = os.path.join(base_dir, "service_account.json")
         if os.path.exists(cred_path):
             cred = credentials.Certificate(cred_path)
