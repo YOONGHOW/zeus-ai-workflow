@@ -7,7 +7,8 @@
     <title>Zeus AI Agent</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=optional" as="style">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=optional"
         rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css" />
     <link rel="stylesheet" href="/css/chatbot.css" />
@@ -344,7 +345,12 @@
     </div>
 
     <div class="main-container">
-        <aside class="sidebar" id="sidebar">
+        <aside class="sidebar no-transition" id="sidebar">
+            <script>
+                if (window.innerWidth <= 1600) {
+                    document.getElementById('sidebar').classList.add('collapsed');
+                }
+            </script>
 
             <!-- New Chat / Search / Projects Section -->
             <div class="sb-menu-items" style="padding: 8px 0 4px; display: flex; flex-direction: column; gap: 2px;">
@@ -434,7 +440,7 @@
             } else {
                 const username = user.email.split('@')[0];
                 if (userProfileIcon) {
-                    userProfileIcon.textContent = username;
+                    userProfileIcon.textContent = username.charAt(0).toUpperCase();
                     userProfileIcon.title = user.email;
                 }
 
@@ -661,6 +667,13 @@
             }
             // Always load sidebar sessions on page load, independent of active view
             loadSidebarSessions();
+
+            // Allow transitions after initial layout stabilizes
+            setTimeout(() => {
+                if (sidebar) {
+                    sidebar.classList.remove('no-transition');
+                }
+            }, 100);
         });
 
         // --- STANDALONE SIDEBAR SESSION LOADER ---
