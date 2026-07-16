@@ -680,17 +680,41 @@ async def process_document_background(file_id: str):
                 try:
                     import fitz
                     doc = fitz.open(stream=file_bytes, filetype="pdf")
-                    total_pages = len(doc)
-                    for i in range(total_pages):
+                    
+                    # Direct PDF text extraction fast path
+                    pdf_text_parts = []
+                    pdf_ocr_details = []
+                    for i in range(len(doc)):
                         page = doc.load_page(i)
-                        pix = page.get_pixmap()
-                        img_bytes = pix.tobytes("png")
-                        res = await loop.run_in_executor(None, process_paddle_ocr, img_bytes)
-                        page_details = res.get("ocr_details", [])
-                        for p in page_details:
-                            if isinstance(p, dict): p["page_num"] = i
-                        ocr_details.extend(page_details)
-                        raw_text_parts.append(res.get("raw_text", ""))
+                        text = page.get_text()
+                        if text.strip():
+                            pdf_text_parts.append(text)
+                            pdf_ocr_details.append({
+                                "page_num": i,
+                                "res": {
+                                    "rec_texts": [text],
+                                    "dt_polys": []
+                                }
+                            })
+                    
+                    extracted_pdf_text = "\n".join(pdf_text_parts)
+                    if len(extracted_pdf_text.strip()) > 20:
+                        print(f"[Background Task] Extracted {len(extracted_pdf_text)} characters directly from PDF using PyMuPDF fast-path.")
+                        ocr_details = pdf_ocr_details
+                        raw_text_parts = pdf_text_parts
+                    else:
+                        print("[Background Task] PDF has no copyable text. Running page-by-page OCR.")
+                        total_pages = len(doc)
+                        for i in range(total_pages):
+                            page = doc.load_page(i)
+                            pix = page.get_pixmap()
+                            img_bytes = pix.tobytes("png")
+                            res = await loop.run_in_executor(None, process_paddle_ocr, img_bytes)
+                            page_details = res.get("ocr_details", [])
+                            for p in page_details:
+                                if isinstance(p, dict): p["page_num"] = i
+                            ocr_details.extend(page_details)
+                            raw_text_parts.append(res.get("raw_text", ""))
                 except Exception as e:
                     print(f"[Background Task] PyMuPDF error: {e}")
                     log_error_to_db(
@@ -1104,7 +1128,9 @@ async def upload_kb(
             db.commit()
             
             try:
-                ocr_result = process_paddle_ocr(contents)
+                import asyncio
+                loop = asyncio.get_running_loop()
+                ocr_result = await loop.run_in_executor(None, process_paddle_ocr, contents)
                 new_file.ocr_text = ocr_result.get("raw_text", "")
                 new_file.ocr_details = ocr_result.get("ocr_details", [])
                 new_file.status = "ocr_completed"
