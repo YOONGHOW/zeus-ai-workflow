@@ -26,19 +26,29 @@ def process_paddle_ocr(file_bytes: bytes) -> dict:
             full_text_parts = []
             ocr_details = []
             for i, page in enumerate(doc):
-                text = page.get_text()
-                if text.strip():
-                    full_text_parts.append(text)
+                blocks = page.get_text("blocks")
+                page_texts = []
+                page_polys = []
+                for b in blocks:
+                    block_text = b[4].strip()
+                    if block_text:
+                        page_texts.append(block_text)
+                        # Construct a 4-point polygon matching PaddleOCR format: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
+                        x0, y0, x1, y1 = b[0], b[1], b[2], b[3]
+                        page_polys.append([[x0, y0], [x1, y0], [x1, y1], [x0, y1]])
+                
+                if page_texts:
+                    full_text_parts.append("\n".join(page_texts))
                     ocr_details.append({
                         "page_num": i,
                         "res": {
-                            "rec_texts": [text],
-                            "dt_polys": []
+                            "rec_texts": page_texts,
+                            "dt_polys": page_polys
                         }
                     })
             raw_text = "\n".join(full_text_parts)
             if len(raw_text.strip()) > 20:
-                print(f"[OCR Fast Path] Extracted {len(raw_text)} chars directly from PDF using PyMuPDF.")
+                print(f"[OCR Fast Path] Extracted {len(raw_text)} chars and bounding boxes directly from PDF using PyMuPDF.")
                 return {"raw_text": raw_text, "ocr_details": ocr_details}
             print("[OCR Fast Path] PDF has no copyable text. Falling back to PaddleOCR.")
         except Exception as e:
