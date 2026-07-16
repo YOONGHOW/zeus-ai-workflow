@@ -361,7 +361,7 @@ def find_bounding_boxes_for_value(value, ocr_details: List[dict]) -> List[dict]:
                 text_str = str(text).strip()
                 text_lower = text_str.lower()
                 if val_lower == text_lower or val_lower in text_lower:
-                    poly = polys[i]
+                    poly = polys[i] if i < len(polys) else None
                     flat_box = [coord for pt in poly for coord in pt] if poly else []
                     results.append({
                         "box": flat_box,
@@ -686,14 +686,23 @@ async def process_document_background(file_id: str):
                     pdf_ocr_details = []
                     for i in range(len(doc)):
                         page = doc.load_page(i)
-                        text = page.get_text()
-                        if text.strip():
-                            pdf_text_parts.append(text)
+                        blocks = page.get_text("blocks")
+                        page_texts = []
+                        page_polys = []
+                        for b in blocks:
+                            block_text = b[4].strip()
+                            if block_text:
+                                page_texts.append(block_text)
+                                x0, y0, x1, y1 = b[0], b[1], b[2], b[3]
+                                page_polys.append([[x0, y0], [x1, y0], [x1, y1], [x0, y1]])
+                        
+                        if page_texts:
+                            pdf_text_parts.append("\n".join(page_texts))
                             pdf_ocr_details.append({
                                 "page_num": i,
                                 "res": {
-                                    "rec_texts": [text],
-                                    "dt_polys": []
+                                    "rec_texts": page_texts,
+                                    "dt_polys": page_polys
                                 }
                             })
                     
