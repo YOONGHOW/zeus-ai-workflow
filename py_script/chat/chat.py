@@ -561,8 +561,10 @@ API Response Data:
                                             text = file_bytes.decode("utf-8", errors="ignore")
                                             pf.ocr_details = [{"res": {"rec_texts": [text], "dt_polys": []}}]
                                         else:
-                                            print(f"[Backend Chat] Running PaddleOCR synchronously for: {pf.filename}")
-                                            ocr_res = process_paddle_ocr(file_bytes)
+                                            print(f"[Backend Chat] Running process_paddle_ocr in thread executor for: {pf.filename}")
+                                            import asyncio
+                                            loop = asyncio.get_running_loop()
+                                            ocr_res = await loop.run_in_executor(None, process_paddle_ocr, file_bytes)
                                             text = ocr_res.get("raw_text", "")
                                             pf.ocr_details = ocr_res.get("ocr_details", [])
                                         

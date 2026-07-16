@@ -18,6 +18,32 @@ ocr = PaddleOCR(
 
 def process_paddle_ocr(file_bytes: bytes) -> dict:
     is_pdf = file_bytes[:4] == b'%PDF'
+    
+    if is_pdf:
+        try:
+            import fitz
+            doc = fitz.open(stream=file_bytes, filetype="pdf")
+            full_text_parts = []
+            ocr_details = []
+            for i, page in enumerate(doc):
+                text = page.get_text()
+                if text.strip():
+                    full_text_parts.append(text)
+                    ocr_details.append({
+                        "page_num": i,
+                        "res": {
+                            "rec_texts": [text],
+                            "dt_polys": []
+                        }
+                    })
+            raw_text = "\n".join(full_text_parts)
+            if len(raw_text.strip()) > 20:
+                print(f"[OCR Fast Path] Extracted {len(raw_text)} chars directly from PDF using PyMuPDF.")
+                return {"raw_text": raw_text, "ocr_details": ocr_details}
+            print("[OCR Fast Path] PDF has no copyable text. Falling back to PaddleOCR.")
+        except Exception as e:
+            print(f"[OCR Fast Path] Direct PDF text extraction failed: {e}. Falling back to PaddleOCR.")
+
     is_webp = file_bytes[:4] == b'RIFF' and file_bytes[8:12] == b'WEBP'
     suffix = ".pdf" if is_pdf else (".webp" if is_webp else ".png")
     
